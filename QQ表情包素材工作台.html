@@ -1,0 +1,2750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>表情包素材工作台</title>
+<style>
+:root{
+  --bg:#f7f7f8; --panel:#ffffff; --panel2:#fcfcfd; --panel3:#f4f4f5;
+  --line:#e8e8ea; --line2:#f0f0f1; --line3:#dededf;
+  --text:#101013; --sub:#66666e; --muted:#9b9ba3;
+  --accent:#141418; --accent2:#000000; --accent-soft:#f4f4f5; --accent-line:#d6d6da;
+  --ok:#141418; --ok-soft:#f4f4f5; --warn:#a05a12; --warn-soft:#fbf4ea; --err:#cf372b; --err-soft:#fceeed;
+  --r:11px; --r-sm:8px;
+  --shadow:none;
+  --shadow-lg:0 16px 48px rgba(16,16,20,.16);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--text); font-size:13px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; overflow:auto;
+}
+body.resizing{cursor:col-resize;user-select:none}
+body.resizing *{cursor:col-resize !important}
+button{font-family:inherit;font-size:inherit;color:inherit;border:none;background:none;cursor:pointer;padding:0}
+input{font-family:inherit;font-size:inherit;color:inherit}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#d8d8dc;border-radius:6px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:#b8b8bf;background-clip:content-box;border:3px solid transparent}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- shell ---------- */
+.app{height:100%;display:flex;flex-direction:column;min-width:1180px}
+.top{
+  height:54px;flex:0 0 auto;display:flex;align-items:center;gap:14px;
+  padding:0 18px;background:var(--panel);border-bottom:1px solid var(--line);z-index:5;
+}
+.brand{display:flex;align-items:baseline;gap:11px;min-width:0}
+.brand h1{font-size:16.5px;font-weight:700;margin:0;letter-spacing:.4px;white-space:nowrap}
+.brand .brand-sub{font-size:11.5px;color:var(--muted);letter-spacing:.3px;white-space:nowrap;position:relative;padding-left:12px}
+.brand .brand-sub:before{content:"";position:absolute;left:0;top:50%;width:1px;height:10px;background:var(--line3);transform:translateY(-50%)}
+.top-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+.stat{font-size:11.5px;color:var(--sub);padding:0 4px}
+.stat b{color:var(--text);font-weight:650}
+
+.btn{
+  display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:8px;
+  border:1px solid var(--line3);background:var(--panel);font-size:12.5px;font-weight:520;
+  transition:.15s; white-space:nowrap;
+}
+.btn:hover{background:var(--panel3);border-color:#cfcfd4}
+.btn:active{transform:translateY(.5px)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:#000;border-color:#000}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--sub)}
+.btn.ghost:hover{background:var(--panel3);color:var(--text)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.sm{height:26px;padding:0 9px;font-size:11.5px;border-radius:7px}
+.btn.block{width:100%;justify-content:center}
+
+.main{flex:1;display:flex;gap:0;padding:9px;min-height:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.panel-assets{width:12.6%;flex:0 0 12.6%;min-width:168px}
+.panel-stage{flex:1;flex-direction:row;min-width:460px}
+.panel-export{width:21%;flex:0 0 21%;min-width:226px}
+.panel-hd{
+  height:40px;flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:0 12px;
+  border-bottom:1px solid var(--line2);font-size:12.5px;font-weight:620;white-space:nowrap;
+}
+.panel-hd .sub{font-weight:400;font-size:11px;color:var(--muted);margin-left:auto}
+
+/* 可拖拽分栏 */
+.rs{flex:0 0 9px;position:relative;cursor:col-resize;z-index:3;touch-action:none}
+.rs:before{content:"";position:absolute;left:50%;top:2px;bottom:2px;width:1px;background:transparent;transform:translateX(-50%);border-radius:2px;transition:background .14s,width .14s}
+.rs:hover:before,.rs.on:before{width:2px;background:var(--text)}
+.rs.rs-inner{flex:0 0 7px}
+.rs.rs-inner:before{background:var(--line2)}
+.rs-hint{position:fixed;z-index:80;background:var(--text);color:#fff;font-size:10.5px;padding:2px 7px;border-radius:5px;pointer-events:none;opacity:0;transition:opacity .12s;font-variant-numeric:tabular-nums}
+.rs-hint.on{opacity:1}
+
+/* ---------- assets ---------- */
+.filters{display:flex;gap:3px;margin-left:auto;background:var(--panel3);padding:2px;border-radius:7px;flex:0 0 auto}
+.filters button{height:20px;padding:0 6px;border-radius:5px;font-size:11px;color:var(--sub)}
+.filters button.on{background:#fff;color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08);font-weight:600}
+.assets{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:5px;position:relative}
+.asset{
+  display:flex;gap:9px;padding:6px;border-radius:9px;border:1px solid transparent;cursor:grab;
+  transition:.12s; position:relative; user-select:none;
+}
+.asset:hover{background:var(--panel3)}
+.asset.sel{background:#f4f4f5;border-color:var(--text)}
+.asset .thumb{
+  width:46px;height:46px;flex:0 0 46px;border-radius:7px;overflow:hidden;
+  display:grid;place-items:center;border:1px solid var(--line2);
+}
+.asset .thumb img{max-width:100%;max-height:100%;display:block}
+.asset .info{min-width:0;flex:1;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.asset .nm{font-size:12px;font-weight:560;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.asset .meta{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;padding:0 4px;height:14px;line-height:14px;border-radius:4px;font-size:9.5px;font-weight:700;letter-spacing:.3px;vertical-align:1px}
+.badge.gif,.badge.png{background:#f0f0f1;color:#4a4a52}
+.badge.gen{background:var(--text);color:#fff}
+.asset .del{
+  position:absolute;right:5px;top:5px;width:17px;height:17px;border-radius:5px;display:none;
+  place-items:center;background:#fff;border:1px solid var(--line);color:var(--sub);font-size:11px;line-height:1;
+}
+.asset:hover .del{display:grid}
+.asset .del:hover{color:var(--err);border-color:#f0c3bf}
+.asset .quick{
+  position:absolute;right:5px;bottom:5px;height:18px;padding:0 5px;border-radius:5px;display:none;
+  align-items:center;background:#fff;border:1px solid var(--line);color:var(--sub);font-size:10.5px;
+}
+.asset:hover .quick{display:flex}
+.asset .quick:hover{color:#fff;border-color:var(--text);background:var(--text)}
+.empty-tip{padding:26px 14px;text-align:center;color:var(--muted);font-size:11.5px;line-height:1.7}
+.empty-tip b{display:block;color:var(--sub);font-size:12px;margin-bottom:3px;font-weight:600}
+.assets.dragover{background:#fafafa;outline:1px dashed var(--text);outline-offset:-6px;border-radius:9px}
+
+/* ---------- stage ---------- */
+.stage-left{width:28%;flex:0 0 28%;min-width:246px;display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+.preview-wrap{padding:11px;flex:0 0 auto;display:flex;justify-content:center}
+.preview-card{width:min(100%,34vh);min-width:180px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
+.preview-hd{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line2);font-size:11px;color:var(--sub)}
+.preview-hd .name{font-weight:600;color:var(--text);font-size:11.5px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.preview-hd .tag{margin-left:auto;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.preview-body{
+  width:100%;aspect-ratio:1/1;display:grid;place-items:center;position:relative;overflow:hidden;
+  background-image:linear-gradient(45deg,#f1f1f2 25%,transparent 25%),linear-gradient(-45deg,#f1f1f2 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#f1f1f2 75%),linear-gradient(-45deg,transparent 75%,#f1f1f2 75%);
+  background-size:18px 18px;background-position:0 0,0 9px,9px -9px,-9px 0;
+}
+.preview-body canvas{width:100%;height:100%;object-fit:contain;display:block;image-rendering:auto}
+.preview-empty{color:var(--muted);font-size:11.5px;text-align:center;padding:20px;line-height:1.8}
+.preview-ft{display:flex;align-items:center;gap:6px;padding:7px 10px;border-top:1px solid var(--line2);font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.preview-ft .dot{width:3px;height:3px;border-radius:50%;background:var(--line3)}
+.preview-ft .sp{margin-left:auto}
+
+/* ---------- ops ---------- */
+.ops{flex:1;min-height:0;overflow-y:auto;background:var(--panel);border-top:1px solid var(--line2)}
+.ops-foot{flex:0 0 auto;padding:10px 12px 12px;border-top:1px solid var(--line);background:var(--panel)}
+.ops-block{background:transparent;border:0;border-radius:0;padding:11px 12px 12px;margin:0}
+.ops-title{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:650;color:var(--text);margin:0 0 10px}
+.ops-title .hint{font-weight:400;font-size:10px;color:var(--muted);margin-left:auto}
+.row{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.row:last-child{margin-bottom:0}
+.row > label.lb{width:38px;flex:0 0 38px;font-size:11px;color:var(--sub)}
+.row .val{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:26px;text-align:right}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;height:3px;border-radius:3px;background:var(--line3);
+  flex:1;min-width:0;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#fff;
+  border:2px solid var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.16);cursor:grab;
+}
+input[type=number],input[type=text]{
+  height:25px;border:1px solid var(--line3);border-radius:6px;padding:0 6px;background:#fff;
+  font-size:11.5px;width:52px;text-align:center;outline:none;font-variant-numeric:tabular-nums;
+}
+input[type=number]:focus,input[type=text]:focus{border-color:var(--text);box-shadow:0 0 0 3px rgba(16,16,20,.07)}
+input[type=number]::-webkit-inner-spin-button{opacity:.35;height:18px}
+.seg{display:flex;background:var(--panel3);border-radius:7px;padding:2px;gap:2px;flex:1}
+.seg button{flex:1;height:22px;border-radius:5px;font-size:11px;color:var(--sub);white-space:nowrap;padding:0 4px}
+.seg button.on{background:#fff;color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.mini{height:22px;padding:0 7px;border-radius:6px;border:1px solid var(--line3);font-size:10.5px;color:var(--sub);background:#fff;white-space:nowrap}
+.mini:hover{border-color:var(--text);color:var(--text)}
+.mini.on{background:var(--text);border-color:var(--text);color:#fff}
+.switch{position:relative;width:30px;height:17px;flex:0 0 30px;cursor:pointer}
+.switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.switch i{position:absolute;inset:0;background:var(--line3);border-radius:9px;transition:.18s}
+.switch i:after{content:"";position:absolute;width:13px;height:13px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.18s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch input:checked + i{background:var(--accent)}
+.switch input:checked + i:after{transform:translateX(13px)}
+.gen-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:2px}
+.gen-row .btn{height:30px;padding:0 4px;justify-content:center;font-size:11.5px}
+.gen-row .btn.wide{grid-column:span 3}
+.ops-note{font-size:10.5px;color:var(--muted);line-height:1.65;margin:0;padding:2px 12px 14px}
+.ops-note b{color:var(--warn);font-weight:600}
+
+/* ---------- board ---------- */
+.stage-right{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--panel);min-height:0;position:relative}
+.board-fade{position:absolute;left:1px;right:1px;bottom:1px;height:46px;border-radius:0 0 10px 10px;background:linear-gradient(to top,#fff 14%,rgba(255,255,255,0));pointer-events:none;opacity:0;transition:opacity .18s}
+.stage-right.more .board-fade{opacity:1}
+.board-hd{height:40px;flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--line2);font-size:12.5px;font-weight:620}
+.board-hd .sub{font-weight:400;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.board-hd .sp{margin-left:auto;display:flex;gap:6px;align-items:center}
+.board{flex:1;overflow-y:auto;padding:12px 14px 18px}
+.cover-row{display:flex;gap:12px;align-items:center;margin:0 auto 12px;max-width:1200px}
+.cover-slot{
+  width:64px;height:64px;flex:0 0 64px;border-radius:9px;border:1px dashed var(--line3);background:#fafafa;
+  display:grid;place-items:center;cursor:pointer;position:relative;overflow:hidden;transition:.15s;
+}
+.cover-slot:hover{border-color:var(--text);background:#f4f4f5}
+.cover-slot.drop{border-color:var(--text);background:#f4f4f5;box-shadow:0 0 0 3px rgba(16,16,20,.08)}
+.cover-slot img{width:100%;height:100%;object-fit:contain;display:block}
+.cover-slot .ph{text-align:center;color:var(--muted);font-size:10px;line-height:1.4}
+.cover-slot .ph b{display:block;font-size:17px;font-weight:300;line-height:1;margin-bottom:2px}
+.cover-slot .clr{position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:5px;background:rgba(255,255,255,.95);border:1px solid var(--line);display:none;place-items:center;font-size:10px;color:var(--sub);line-height:1}
+.cover-slot:hover .clr{display:grid}
+.cover-meta{flex:1;min-width:0}
+.cover-meta .t{font-size:15px;font-weight:700;letter-spacing:.3px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cover-meta .d{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cover-meta .d b{color:var(--sub);font-weight:600}
+
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;max-width:1200px;margin:0 auto}
+.card{
+  position:relative;border:1px solid var(--line);border-radius:10px;background:var(--panel);
+  padding:0 0 4px;transition:.15s;overflow:hidden;
+}
+.card:hover{border-color:var(--line3)}
+.card.drop{border-color:var(--text);box-shadow:0 0 0 2px rgba(16,16,20,.1)}
+.card.dragging{opacity:.35}
+.card.filled{background:#fff}
+.bar{
+  height:18px;display:flex;align-items:center;gap:4px;padding:0 6px;cursor:grab;
+  border-bottom:1px solid var(--line2);background:var(--panel3);font-size:10px;color:var(--muted);
+  font-variant-numeric:tabular-nums;user-select:none;
+}
+.bar:active{cursor:grabbing}
+.bar .no{font-weight:700;color:var(--sub);letter-spacing:.3px}
+.bar .grip{width:9px;height:9px;opacity:.55;background-image:radial-gradient(circle,currentColor 1px,transparent 1.2px);background-size:3px 3px;margin-right:1px}
+.bar .st{margin-left:auto;width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--line3)}
+.bar .st.ok{background:var(--text)}
+.bar .st.bad{background:var(--warn)}
+.bar .st.none{background:var(--line3)}
+.bar .x{width:14px;height:14px;border-radius:4px;display:none;place-items:center;font-size:11px;color:var(--muted);line-height:1}
+.card:hover .bar .x{display:grid}
+.bar .x:hover{background:#fdecee;color:var(--err)}
+.flip{perspective:700px;margin:4px 5px 0}
+.flip-in{position:relative;width:100%;height:var(--face-h,120px);transform-style:preserve-3d;transition:transform .42s cubic-bezier(.4,.2,.2,1)}
+.flip.flipped .flip-in{transform:rotateY(180deg)}
+.face{
+  position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:7px;overflow:hidden;display:grid;place-items:center;
+  background-image:linear-gradient(45deg,#eef0f3 25%,transparent 25%),linear-gradient(-45deg,#eef0f3 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#eef0f3 75%),linear-gradient(-45deg,transparent 75%,#eef0f3 75%);
+  background-size:12px 12px;background-position:0 0,0 6px,6px -6px,-6px 0;
+  background-color:#fff;border:1px solid var(--line2);
+}
+.face.back{transform:rotateY(180deg)}
+.face img{width:100%;height:100%;object-fit:contain;display:block}
+.face .ph{display:flex;flex-direction:column;align-items:center;gap:1px;color:#c3c9d3;pointer-events:none}
+.face .ph b{font-size:19px;font-weight:300;line-height:1}
+.face .ph span{font-size:9.5px;letter-spacing:.4px}
+.face.clickable{cursor:pointer}
+.face.clickable:hover{background-color:#f7f7f8;border-color:var(--line3)}
+.card .nm-row{padding:4px 5px 0;display:flex;align-items:center;gap:4px}
+.card input.nm{
+  flex:1;min-width:0;width:auto;height:20px;border:1px solid transparent;background:transparent;border-radius:6px;
+  padding:0 4px;font-size:11.5px;text-align:center;outline:none;
+}
+.card input.nm:hover{background:var(--panel3)}
+.card input.nm:focus{background:#fff;border-color:var(--text);box-shadow:0 0 0 2px rgba(16,16,20,.07)}
+.card input.nm.err{color:var(--err);background:var(--err-soft)}
+.tg{
+  height:20px;flex:0 0 auto;padding:0 7px;border-radius:6px;font-size:9.5px;font-weight:700;letter-spacing:.3px;
+  display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line3);color:var(--sub);background:#fff;
+}
+.tg:hover{border-color:var(--text);color:var(--text)}
+.tg .sw{font-size:9px;opacity:.7}
+.tg.g{color:#4a4a52;border-color:var(--line3);background:#f6f6f7}
+.tg.p{color:#fff;border-color:var(--text);background:var(--text)}
+.tg.p:hover{background:#000;border-color:#000;color:#fff}
+.board-empty{text-align:center;color:var(--muted);font-size:11.5px;padding:6px 0 10px}
+
+/* ---------- export ---------- */
+.exp{flex:1;overflow-y:auto;padding:10px}
+.exp-block{margin-bottom:9px}
+.exp-label{font-size:11px;color:var(--sub);margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.exp-label .sp{margin-left:auto;font-size:10px;color:var(--muted)}
+.field{display:flex;gap:6px}
+.field input[type=text]{flex:1;width:auto;text-align:left;height:28px;font-size:12px;padding:0 8px}
+.path-box{
+  display:flex;align-items:center;gap:7px;height:30px;padding:0 9px;border:1px solid var(--line3);
+  border-radius:7px;background:#fafafa;font-size:11px;color:var(--sub);min-width:0;
+}
+.path-box .ic{color:var(--muted);font-size:11px}
+.path-box .p{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:left;flex:1}
+.path-box .p.default{color:var(--muted)}
+.tree{background:#fafafa;border:1px solid var(--line2);border-radius:8px;padding:9px 10px;font-size:11px;color:var(--sub);line-height:1.8;font-variant-numeric:tabular-nums}
+.tree .f{color:var(--text);font-weight:600}
+.tree .b{color:var(--muted)}
+.tree .t{color:var(--text);font-weight:560}
+.chk{display:flex;flex-direction:column;gap:1px}
+.chk-item{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:11px;color:var(--sub)}
+.chk-item .ic{width:14px;height:14px;border-radius:50%;flex:0 0 14px;display:grid;place-items:center;font-size:9px;font-weight:700;color:#fff}
+.chk-item.ok .ic{background:var(--ok)}
+.chk-item.warn .ic{background:var(--warn)}
+.chk-item.err .ic{background:var(--err)}
+.chk-item .sp{margin-left:auto;font-variant-numeric:tabular-nums;font-size:10px;color:var(--muted)}
+.chk-item.err{color:var(--err)}
+.chk-item.warn{color:var(--warn)}
+.exp-foot{position:sticky;bottom:-10px;background:linear-gradient(to bottom,rgba(255,255,255,.4),#fff 22%);padding-top:8px;padding-bottom:10px;margin-top:2px}
+.progress{height:3px;border-radius:3px;background:var(--line2);overflow:hidden;margin-bottom:7px;display:none}
+.progress.on{display:block}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s;border-radius:3px}
+.export-btn{height:38px;width:100%;border-radius:9px;background:var(--text);color:#fff;font-size:13px;font-weight:620;letter-spacing:.3px;transition:.15s}
+.export-btn:hover{background:#000}
+.export-btn:disabled{opacity:.35;cursor:not-allowed}
+.hint-line{font-size:10.5px;color:var(--muted);line-height:1.65;margin-top:7px}
+
+/* ---------- modal ---------- */
+.mask{position:fixed;inset:0;background:rgba(20,25,35,.38);backdrop-filter:blur(2px);z-index:50;display:none;align-items:center;justify-content:center;padding:24px}
+.mask.on{display:flex}
+.modal{background:#fff;border-radius:14px;box-shadow:var(--shadow-lg);width:600px;max-width:100%;max-height:100%;display:flex;flex-direction:column;overflow:hidden;animation:pop .18s ease}
+@keyframes pop{from{transform:scale(.97) translateY(6px);opacity:0}to{transform:none;opacity:1}}
+.modal-hd{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line2)}
+.modal-hd h3{margin:0;font-size:13px;font-weight:650}
+.modal-hd .x{margin-left:auto;width:24px;height:24px;border-radius:6px;display:grid;place-items:center;color:var(--sub);font-size:14px}
+.modal-hd .x:hover{background:var(--panel3)}
+.modal-bd{padding:14px 16px;overflow-y:auto;min-height:0}
+.modal-ft{padding:10px 16px;border-top:1px solid var(--line2);display:flex;gap:8px;align-items:center}
+.modal-ft .sp{margin-left:auto}
+.pick-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.pick{
+  border:1px solid var(--line);border-radius:9px;padding:5px;cursor:pointer;text-align:center;
+  transition:.12s;background:#fff;
+}
+.pick:hover{border-color:var(--text);background:#fafafa;transform:translateY(-1px)}
+.pick .im{height:62px;display:grid;place-items:center;margin-bottom:4px;border-radius:6px;overflow:hidden}
+.pick .im img{max-width:100%;max-height:62px;display:block}
+.pick .nm{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--sub)}
+.pick .dim{font-size:9px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:1px}
+.spec-list{font-size:12px;line-height:1.9;color:var(--sub)}
+.spec-list h4{margin:15px 0 4px;font-size:12px;color:var(--text);font-weight:680}
+.spec-list h4:first-child{margin-top:0}
+.spec-list code{background:#f4f4f5;padding:1px 5px;border-radius:4px;font-size:11px;color:var(--text);font-family:ui-monospace,Menlo,monospace}
+.spec-list .k{color:var(--text);font-weight:600}
+.warn-list{font-size:12px;line-height:1.8;color:var(--sub);max-height:280px;overflow:auto}
+.warn-list .w{color:var(--warn)}
+.warn-list .e{color:var(--err)}
+
+/* toast */
+.toasts{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99;display:flex;flex-direction:column;gap:7px;align-items:center;pointer-events:none}
+.toast{
+  background:#141418;color:#fff;padding:8px 14px;border-radius:9px;font-size:12px;
+  animation:tin .2s ease;max-width:560px;line-height:1.5;
+}
+.toast.ok{background:#141418}
+.toast.err{background:#c0342a}
+.toast.warn{background:#96601a}
+@keyframes tin{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+
+/* loader */
+.spin{width:13px;height:13px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+.spin.dark{border-color:rgba(16,16,20,.15);border-top-color:var(--text)}
+@keyframes sp{to{transform:rotate(360deg)}}
+.busy-veil{position:absolute;inset:0;background:rgba(255,255,255,.75);display:grid;place-items:center;z-index:4;font-size:11.5px;color:var(--sub);gap:8px;border-radius:var(--r)}
+.busy-veil .box{display:flex;align-items:center;gap:7px;background:#fff;padding:8px 12px;border-radius:9px;border:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1>表情包素材工作台</h1>
+      <span class="brand-sub">纯AI · 无人工 · 优质代码 · 赞美WorkBuddy每月免费积分</span>
+    </div>
+    <div class="top-actions">
+      <span class="stat">素材 <b id="statCount">0</b></span>
+      <button class="btn" id="btnSpec">规范速查</button>
+      <button class="btn primary" id="btnImport">＋ 导入素材</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- 素材区 -->
+    <aside class="panel panel-assets">
+      <div class="panel-hd">
+        素材库
+        <div class="filters" id="assetFilter">
+          <button data-f="all" class="on">全部</button>
+          <button data-f="gif">GIF</button>
+          <button data-f="png">PNG</button>
+        </div>
+      </div>
+      <div class="assets" id="assetList"></div>
+    </aside>
+    <div class="rs" data-for="assets" title="拖动调整素材库宽度（双击复位）"></div>
+
+    <!-- 操作区 -->
+    <section class="panel panel-stage">
+      <div class="stage-left">
+        <div class="preview-wrap">
+          <div class="preview-card">
+            <div class="preview-hd">
+              <span class="name" id="pvName">未选中素材</span>
+              <span class="tag" id="pvTag"></span>
+            </div>
+            <div class="preview-body" id="pvBody">
+              <div class="preview-empty" id="pvEmpty">从左侧选择素材<br>这里显示处理后的实时预览</div>
+              <canvas id="pvCanvas" style="display:none"></canvas>
+            </div>
+            <div class="preview-ft">
+              <span id="pvInfo">—</span>
+              <span class="dot"></span>
+              <span id="pvOut">—</span>
+              <span class="sp"></span>
+              <span id="pvPlay" style="cursor:pointer"></span>
+            </div>
+          </div>
+        </div>
+        <div class="ops">
+          <div class="ops-block">
+            <div class="ops-title">处理参数 <span class="hint">只作用于实例</span></div>
+            <div class="row">
+              <label class="lb">画布</label>
+              <div class="seg" id="sizePreset">
+                <button data-size="300" class="on">300 表情</button>
+                <button data-size="200">200 封面</button>
+                <button data-size="0">自定义</button>
+              </div>
+            </div>
+            <div class="row">
+              <label class="lb">边长</label>
+              <input type="range" id="opSize" min="64" max="800" step="1" value="300">
+              <input type="number" id="opSizeNum" min="16" max="1200" step="1" value="300">
+              <span class="val">px</span>
+            </div>
+            <div class="row">
+              <label class="lb">适配</label>
+              <div class="seg" id="fitSeg">
+                <button data-fit="contain" class="on">完整显示（留白）</button>
+                <button data-fit="cover">裁切填充</button>
+              </div>
+            </div>
+            <div class="row">
+              <label class="lb">白边</label>
+              <input type="range" id="opStroke" min="0" max="12" step="1" value="3">
+              <input type="number" id="opStrokeNum" min="0" max="24" step="1" value="3">
+              <span class="val">px</span>
+            </div>
+            <div class="row">
+              <label class="lb">取帧</label>
+              <input type="range" id="opFrame" min="0" max="0" step="1" value="0">
+              <input type="number" id="opFrameNum" min="0" max="0" step="1" value="0">
+              <button class="mini" id="btnFullFrame">最完整</button>
+            </div>
+            <div class="row">
+              <label class="lb">颜色</label>
+              <input type="range" id="opColors" min="8" max="256" step="8" value="256">
+              <span class="val" id="opColorsVal">256</span>
+            </div>
+            <div class="row">
+              <label class="lb">帧优化</label>
+              <label class="switch"><input type="checkbox" id="opDelta" checked><i></i></label>
+              <span class="val" style="text-align:left;flex:1">帧间差分，减小体积</span>
+            </div>
+          </div>
+
+          <div class="ops-note" id="opNote">生成会按当前参数产出<strong>新素材</strong>放进素材库，原文件永远不被修改。</div>
+        </div>
+        <div class="ops-foot">
+          <div class="gen-row">
+            <button class="btn primary" id="btnGenGif">生成 GIF</button>
+            <button class="btn" id="btnGenPng">生成 PNG</button>
+            <button class="btn" id="btnGenCover">生成封面</button>
+          </div>
+          <div class="row" style="margin-top:7px;margin-bottom:0">
+            <label class="switch"><input type="checkbox" id="opAutoFill"><i></i></label>
+            <span style="font-size:11px;color:var(--sub)">生成后自动填入空位</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="rs rs-inner" data-for="stageLeft" title="拖动调整预览/参数区宽度（双击复位）"></div>
+
+      <div class="stage-right">
+        <div class="board-hd">
+          表情包预览
+          <span class="sub" id="boardSub">0/16</span>
+          <div class="sp">
+            <button class="btn sm" id="btnAutoPair">自动配对</button>
+            <button class="btn sm" id="btnClearAll">清空</button>
+          </div>
+        </div>
+        <div class="board" id="board">
+          <div class="cover-row">
+            <div class="cover-slot" id="coverSlot">
+              <div class="ph"><b>＋</b>封面</div>
+              <span class="clr" id="coverClr">✕</span>
+            </div>
+            <div class="cover-meta">
+              <div class="t" id="coverTitle">未命名表情包</div>
+              <div class="d" id="coverDesc">拖入封面图，或点左侧方块选择</div>
+            </div>
+          </div>
+          <div class="grid" id="grid"></div>
+        </div>
+        <div class="board-fade"></div>
+      </div>
+    </section>
+
+    <div class="rs" data-for="export" title="拖动调整导出面板宽度（双击复位）"></div>
+
+    <!-- 导出设置 -->
+    <aside class="panel panel-export">
+      <div class="panel-hd">导出设置 <span class="sub" id="expSub"></span></div>
+      <div class="exp">
+        <div class="exp-block">
+          <div class="exp-label">名称</div>
+          <div class="field">
+            <input type="text" id="expName" value="我的表情包" spellcheck="false">
+          </div>
+        </div>
+        <div class="exp-block">
+          <div class="exp-label">位置 <span class="sp" id="pathState"></span></div>
+          <div class="field">
+            <div class="path-box"><span class="ic">▤</span><span class="p default" id="pathText">浏览器默认下载目录</span></div>
+            <button class="btn sm" id="btnPickDir" title="选择文件夹">选择</button>
+          </div>
+        </div>
+        <div class="exp-block">
+          <div class="exp-label">形式</div>
+          <div class="seg" id="modeSeg" style="height:28px">
+            <button data-mode="zip" class="on">单压缩包</button>
+            <button data-mode="folder">文件夹</button>
+          </div>
+        </div>
+        <div class="exp-block">
+          <div class="exp-label">输出结构</div>
+          <div class="tree" id="treeView"></div>
+        </div>
+        <div class="exp-block">
+          <div class="exp-label">自检 <span class="sp" id="chkSub"></span></div>
+          <div class="chk" id="chkList"></div>
+        </div>
+        <div class="exp-foot">
+          <div class="progress" id="progress"><i></i></div>
+          <button class="export-btn" id="btnExport">导出</button>
+          <div class="hint-line" id="expHint">导出的 GIF / PNG 压缩包内为平铺文件，无嵌套文件夹。</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<input type="file" id="fileInput" multiple accept=".gif,.png,.zip,.jpg,.jpeg,.webp,.bmp" style="display:none">
+<div class="mask" id="mask"><div class="modal" id="modal"></div></div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* ============================================================
+   0. 基础工具
+   ============================================================ */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const fmtBytes = n => {
+  if (!n && n !== 0) return '—';
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(n < 10240 ? 1 : 0) + ' KB';
+  return (n / 1048576).toFixed(2) + ' MB';
+};
+const pad2 = n => String(n).padStart(2, '0');
+let _uid = 0;
+const uid = p => p + '_' + Date.now().toString(36) + '_' + (++_uid);
+const isCJK = ch => /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u3040-\u30ff]/.test(ch);
+
+/* ---------- CRC32 ---------- */
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(u8, seed) {
+  let c = (seed === undefined ? 0 : seed) ^ 0xFFFFFFFF;
+  for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+/* ---------- 可增长字节缓冲 ---------- */
+class Buf {
+  constructor(n = 4096) { this.a = new Uint8Array(n); this.n = 0; }
+  need(k) {
+    if (this.n + k <= this.a.length) return;
+    let s = this.a.length * 2;
+    while (s < this.n + k) s *= 2;
+    const b = new Uint8Array(s); b.set(this.a.subarray(0, this.n)); this.a = b;
+  }
+  u8(v) { this.need(1); this.a[this.n++] = v & 255; }
+  u16(v) { this.need(2); this.a[this.n++] = v & 255; this.a[this.n++] = (v >> 8) & 255; }
+  u32(v) { this.need(4); this.a[this.n++] = v & 255; this.a[this.n++] = (v >>> 8) & 255; this.a[this.n++] = (v >>> 16) & 255; this.a[this.n++] = (v >>> 24) & 255; }
+  u32be(v) { this.need(4); this.a[this.n++] = (v >>> 24) & 255; this.a[this.n++] = (v >>> 16) & 255; this.a[this.n++] = (v >>> 8) & 255; this.a[this.n++] = v & 255; }
+  bytes(b) { this.need(b.length); this.a.set(b, this.n); this.n += b.length; }
+  str(s) { for (let i = 0; i < s.length; i++) this.u8(s.charCodeAt(i)); }
+  done() { return this.a.slice(0, this.n); }
+}
+
+/* ============================================================
+   1. ZIP 读取 / 写入（无依赖，用浏览器原生 deflate）
+   ============================================================ */
+function decodeZipName(bytes, utf8Flag) {
+  if (!utf8Flag) {
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch (e) { }
+    try { return new TextDecoder('gbk').decode(bytes); } catch (e) { }
+  }
+  return new TextDecoder('utf-8').decode(bytes);
+}
+async function inflateRaw(u8) {
+  if (typeof DecompressionStream === 'undefined') throw new Error('当前浏览器不支持解压（请用 Chrome / Edge 打开）');
+  const s = new Blob([u8]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(s).arrayBuffer());
+}
+async function unzip(buf) {
+  const u8 = new Uint8Array(buf);
+  const dv = new DataView(buf);
+  let eocd = -1;
+  const floor = Math.max(0, u8.length - 66000);
+  for (let i = u8.length - 22; i >= floor; i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('不是有效的 ZIP 文件');
+  let total = dv.getUint16(eocd + 10, true);
+  let cdOff = dv.getUint32(eocd + 16, true);
+  if (total === 0xFFFF || cdOff === 0xFFFFFFFF) throw new Error('暂不支持 ZIP64，请用普通方式重新压缩');
+  const out = [];
+  let p = cdOff;
+  for (let i = 0; i < total; i++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const flag = dv.getUint16(p + 8, true);
+    const method = dv.getUint16(p + 10, true);
+    const csize = dv.getUint32(p + 20, true);
+    const usize = dv.getUint32(p + 24, true);
+    const nlen = dv.getUint16(p + 28, true);
+    const elen = dv.getUint16(p + 30, true);
+    const clen = dv.getUint16(p + 32, true);
+    const lho = dv.getUint32(p + 42, true);
+    const nameBytes = u8.subarray(p + 46, p + 46 + nlen);
+    const name = decodeZipName(nameBytes, !!(flag & 0x800));
+    p += 46 + nlen + elen + clen;
+    if (name.endsWith('/')) continue;
+    const lnlen = dv.getUint16(lho + 26, true);
+    const lelen = dv.getUint16(lho + 28, true);
+    const start = lho + 30 + lnlen + lelen;
+    const raw = u8.subarray(start, start + csize);
+    let data;
+    if (method === 0) data = raw.slice();
+    else if (method === 8) data = await inflateRaw(raw);
+    else { out.push({ name, error: '不支持的压缩方式(' + method + ')' }); continue; }
+    out.push({ name, data, size: usize });
+  }
+  return out;
+}
+function dosTime(d) {
+  const t = ((d.getHours() & 31) << 11) | ((d.getMinutes() & 63) << 5) | ((d.getSeconds() / 2) & 31);
+  const dt = (((d.getFullYear() - 1980) & 127) << 9) | (((d.getMonth() + 1) & 15) << 5) | (d.getDate() & 31);
+  return [t, dt];
+}
+function makeZip(files) {
+  const now = new Date();
+  const [tm, dt] = dosTime(now);
+  const bw = new Buf(1024 * 256);
+  const central = [];
+  for (const f of files) {
+    const nameB = new TextEncoder().encode(f.name);
+    const data = f.data;
+    const crc = crc32(data);
+    const off = bw.n;
+    bw.u32(0x04034b50); bw.u16(20); bw.u16(0x0800); bw.u16(0);
+    bw.u16(tm); bw.u16(dt); bw.u32(crc); bw.u32(data.length); bw.u32(data.length);
+    bw.u16(nameB.length); bw.u16(0); bw.bytes(nameB); bw.bytes(data);
+    central.push({ nameB, crc, len: data.length, off });
+  }
+  const cdStart = bw.n;
+  for (const c of central) {
+    bw.u32(0x02014b50); bw.u16(20); bw.u16(20); bw.u16(0x0800); bw.u16(0);
+    bw.u16(tm); bw.u16(dt); bw.u32(c.crc); bw.u32(c.len); bw.u32(c.len);
+    bw.u16(c.nameB.length); bw.u16(0); bw.u16(0); bw.u16(0); bw.u16(0); bw.u32(0); bw.u32(c.off);
+    bw.bytes(c.nameB);
+  }
+  const cdSize = bw.n - cdStart;
+  bw.u32(0x06054b50); bw.u16(0); bw.u16(0); bw.u16(central.length); bw.u16(central.length);
+  bw.u32(cdSize); bw.u32(cdStart); bw.u16(0);
+  return new Blob([bw.done()], { type: 'application/zip' });
+}
+
+/* ============================================================
+   2. GIF 解析 / 解码
+   ============================================================ */
+class Rd {
+  constructor(b) { this.b = b; this.p = 0; }
+  get eof() { return this.p >= this.b.length; }
+  u8() { return this.b[this.p++]; }
+  u16() { const v = this.b[this.p] | (this.b[this.p + 1] << 8); this.p += 2; return v; }
+  bytes(n) { const r = this.b.subarray(this.p, this.p + n); this.p += n; return r; }
+  str(n) { let s = ''; for (let i = 0; i < n; i++) s += String.fromCharCode(this.b[this.p++]); return s; }
+  skip(n) { this.p += n; }
+  subBlocks(collect) {
+    if (!collect) { while (true) { const n = this.u8(); if (!n) break; this.p += n; } return null; }
+    const parts = []; let total = 0;
+    while (true) {
+      const n = this.u8(); if (!n) break;
+      parts.push(this.b.subarray(this.p, this.p + n)); this.p += n; total += n;
+    }
+    const out = new Uint8Array(total); let o = 0;
+    for (const p of parts) { out.set(p, o); o += p.length; }
+    return out;
+  }
+}
+function parseGif(bytes, collect) {
+  const rd = new Rd(bytes);
+  const sig = rd.str(6);
+  if (sig.slice(0, 3) !== 'GIF') throw new Error('不是 GIF 文件');
+  const width = rd.u16(), height = rd.u16();
+  const packed = rd.u8();
+  rd.u8(); rd.u8();
+  let gct = null;
+  if (packed & 0x80) { const n = 1 << ((packed & 7) + 1); gct = rd.bytes(n * 3); }
+  const frames = [];
+  let gce = null, loop = 0;
+  while (!rd.eof) {
+    const t = rd.u8();
+    if (t === 0x3B) break;
+    if (t === 0x21) {
+      const label = rd.u8();
+      if (label === 0xF9) {
+        const size = rd.u8();
+        if (size >= 4) {
+          const pk = rd.u8();
+          const delay = rd.u16();
+          const ti = rd.u8();
+          gce = { disposal: (pk >> 2) & 7, transparent: !!(pk & 1), transIdx: ti, delay };
+          if (size > 4) rd.skip(size - 4);
+        } else if (size > 0) rd.skip(size);
+        rd.u8();
+      } else if (label === 0xFF) {
+        const size = rd.u8();
+        const app = size > 0 ? rd.str(size) : '';
+        if (size > 0 && app.indexOf('NETSCAPE') === 0) {
+          const sub = rd.u8();
+          if (sub >= 3) { const a = rd.bytes(sub); loop = a[1] | (a[2] << 8); }
+          else if (sub > 0) rd.skip(sub);
+          rd.subBlocks(false);
+        } else {
+          if (size > 0) rd.subBlocks(false);
+        }
+      } else {
+        rd.subBlocks(false);
+      }
+    } else if (t === 0x2C) {
+      const left = rd.u16(), top = rd.u16(), fw = rd.u16(), fh = rd.u16();
+      const pk = rd.u8();
+      let lct = null;
+      if (pk & 0x80) { const n = 1 << ((pk & 7) + 1); lct = rd.bytes(n * 3); }
+      const interlaced = !!(pk & 0x40);
+      const minCodeSize = rd.u8();
+      const data = rd.subBlocks(collect);
+      frames.push({
+        left, top, w: fw, h: fh, interlaced, palette: lct || gct,
+        minCodeSize, data,
+        gce: gce || { disposal: 0, transparent: false, transIdx: 0, delay: 10 }
+      });
+      gce = null;
+    } else break;
+  }
+  return { width, height, frames, loop };
+}
+function gifInfo(bytes) {
+  try {
+    const g = parseGif(bytes, false);
+    let op = 0;
+    // 粗略估算不透明率用不到，这里只返回结构信息
+    return { width: g.width, height: g.height, frameCount: g.frames.length, loop: g.loop };
+  } catch (e) { return null; }
+}
+function interlaceOrder(h) {
+  const order = new Int32Array(h); let k = 0;
+  const starts = [0, 4, 2, 1], steps = [8, 8, 4, 2];
+  for (let p = 0; p < 4; p++) for (let y = starts[p]; y < h; y += steps[p]) order[k++] = y;
+  return order;
+}
+function lzwDecode(minCodeSize, data, count) {
+  const out = new Uint8Array(count);
+  if (minCodeSize < 2) minCodeSize = 2;
+  if (minCodeSize > 11) minCodeSize = 11;
+  const clear = 1 << minCodeSize, eoi = clear + 1;
+  const prefix = new Int32Array(4096);
+  const suffix = new Uint8Array(4096);
+  for (let i = 0; i < clear; i++) { prefix[i] = -1; suffix[i] = i; }
+  const stack = new Uint8Array(4098);
+  let codeSize = minCodeSize + 1, maxCode = (1 << codeSize) - 1;
+  let next = eoi + 1, old = -1;
+  let bitBuf = 0, bitCnt = 0, pos = 0, op = 0;
+  const n = data.length;
+  while (op < count) {
+    while (bitCnt < codeSize) {
+      if (pos >= n) return out;
+      bitBuf |= data[pos++] << bitCnt;
+      bitCnt += 8;
+    }
+    const code = bitBuf & ((1 << codeSize) - 1);
+    bitBuf >>>= codeSize; bitCnt -= codeSize;
+    if (code === clear) {
+      codeSize = minCodeSize + 1; maxCode = (1 << codeSize) - 1; next = eoi + 1; old = -1;
+      continue;
+    }
+    if (code === eoi) break;
+    let first;
+    if (old === -1) {
+      first = suffix[code] === undefined ? 0 : suffix[code];
+      if (op < count) out[op++] = first;
+      old = code;
+      continue;
+    }
+    let sp = 0, t = (code >= next ? old : code);
+    while (t >= 0 && sp < 4096) { stack[sp++] = suffix[t]; t = prefix[t]; }
+    first = stack[sp - 1];
+    for (let i = sp - 1; i >= 0; i--) { if (op < count) out[op++] = stack[i]; }
+    if (code >= next) { if (op < count) out[op++] = first; }
+    if (next < 4096) {
+      prefix[next] = old; suffix[next] = first; next++;
+      if (next > maxCode && codeSize < 12) { codeSize++; maxCode = (1 << codeSize) - 1; }
+    }
+    old = code;
+  }
+  return out;
+}
+/**
+ * 逐帧合成 GIF，回调里拿到整幅 RGBA（已按 disposal 处理）
+ * onFrame(rgba, w, h, delay, index, total) 返回 true 可提前终止
+ */
+function walkGif(bytes, onFrame) {
+  const g = parseGif(bytes, true);
+  const W = g.width, H = g.height;
+  const comp = new Uint8ClampedArray(W * H * 4);
+  let saved = null;
+  let stop = false;
+  for (let fi = 0; fi < g.frames.length; fi++) {
+    const f = g.frames[fi];
+    if (!f.palette) continue;
+    if (f.gce.disposal === 3) saved = comp.slice();
+    const idx = lzwDecode(f.minCodeSize, f.data, f.w * f.h);
+    const rowMap = f.interlaced ? interlaceOrder(f.h) : null;
+    const P = f.palette;
+    const tr = f.gce.transparent ? f.gce.transIdx : -1;
+    for (let y = 0; y < f.h; y++) {
+      const dy = f.top + (rowMap ? rowMap[y] : y);
+      const dyBase = dy * W;
+      const srcRow = y * f.w;
+      for (let x = 0; x < f.w; x++) {
+        const i = idx[srcRow + x];
+        if (i === tr) continue;
+        const dx = f.left + x;
+        if (dy >= H || dx >= W) continue;
+        const p = (dyBase + dx) * 4;
+        const c = i * 3;
+        comp[p] = P[c]; comp[p + 1] = P[c + 1]; comp[p + 2] = P[c + 2]; comp[p + 3] = 255;
+      }
+    }
+    stop = onFrame(comp, W, H, f.gce.delay, fi, g.frames.length) === true;
+    if (stop) break;
+    if (f.gce.disposal === 2) {
+      for (let y = 0; y < f.h; y++) {
+        const dy = f.top + y;
+        if (dy >= H) break;
+        for (let x = 0; x < f.w; x++) {
+          const dx = f.left + x;
+          if (dx >= W) break;
+          const p = (dy * W + dx) * 4;
+          comp[p] = comp[p + 1] = comp[p + 2] = comp[p + 3] = 0;
+        }
+      }
+    } else if (f.gce.disposal === 3 && saved) {
+      comp.set(saved);
+    }
+  }
+  return { width: W, height: H, frameCount: g.frames.length, loop: g.loop };
+}
+
+/* ============================================================
+   3. 色彩量化（中位切分 + k-means 微调）
+   ============================================================ */
+function collectHist(frames, w, h) {
+  const totalPx = w * h * frames.length;
+  const budget = 45000;
+  const stride = totalPx > budget ? Math.ceil(totalPx / budget) : 1;
+  const hist = new Map();
+  for (let fi = 0; fi < frames.length; fi++) {
+    const d = frames[fi].data;
+    const n = w * h;
+    for (let p = 0; p < n; p += stride) {
+      const i = p * 4;
+      if (d[i + 3] < 128) continue;
+      const k = (d[i] << 16) | (d[i + 1] << 8) | d[i + 2];
+      hist.set(k, (hist.get(k) || 0) + 1);
+    }
+  }
+  return hist;
+}
+function makeBox(ents) {
+  let r0 = 255, r1 = 0, g0 = 255, g1 = 0, b0 = 255, b1 = 0, cnt = 0;
+  for (const e of ents) {
+    if (e.r < r0) r0 = e.r; if (e.r > r1) r1 = e.r;
+    if (e.g < g0) g0 = e.g; if (e.g > g1) g1 = e.g;
+    if (e.b < b0) b0 = e.b; if (e.b > b1) b1 = e.b;
+    cnt += e.n;
+  }
+  const rr = r1 - r0, gr = g1 - g0, br = b1 - b0;
+  const axis = (rr >= gr && rr >= br) ? 'r' : (gr >= br ? 'g' : 'b');
+  const range = Math.max(rr, gr, br);
+  return { ents, cnt, axis, range, score: range * Math.pow(cnt, 0.62) };
+}
+function medianCut(entries, maxColors) {
+  let boxes = [makeBox(entries)];
+  while (boxes.length < maxColors) {
+    let bi = -1, best = -1;
+    for (let i = 0; i < boxes.length; i++) {
+      const b = boxes[i];
+      if (b.ents.length < 2 || b.range === 0) continue;
+      if (b.score > best) { best = b.score; bi = i; }
+    }
+    if (bi < 0) break;
+    const b = boxes[bi];
+    const ax = b.axis;
+    b.ents.sort((x, y) => x[ax] - y[ax]);
+    let acc = 0, k = 0;
+    for (; k < b.ents.length - 1; k++) { acc += b.ents[k].n; if (acc >= b.cnt / 2) break; }
+    const left = b.ents.slice(0, k + 1), right = b.ents.slice(k + 1);
+    if (!left.length || !right.length) { b.score = -1; continue; }
+    boxes.splice(bi, 1, makeBox(left), makeBox(right));
+  }
+  return boxes.map(b => {
+    let r = 0, g = 0, bl = 0, n = 0;
+    for (const e of b.ents) { r += e.r * e.n; g += e.g * e.n; bl += e.b * e.n; n += e.n; }
+    return [Math.round(r / n), Math.round(g / n), Math.round(bl / n)];
+  });
+}
+function nearestIdx(pal, r, g, b) {
+  let bi = 0, bd = 1e12;
+  for (let i = 0; i < pal.length; i++) {
+    const c = pal[i];
+    const dr = c[0] - r, dg = c[1] - g, db = c[2] - b;
+    const d = dr * dr * 0.30 + dg * dg * 0.59 + db * db * 0.11;
+    if (d < bd) { bd = d; bi = i; if (d === 0) break; }
+  }
+  return bi;
+}
+function buildPalette(frames, w, h, maxColors) {
+  const hist = collectHist(frames, w, h);
+  if (!hist.size) return [[0, 0, 0]];
+  const entries = [];
+  hist.forEach((n, k) => entries.push({ r: (k >> 16) & 255, g: (k >> 8) & 255, b: k & 255, n }));
+  if (entries.length <= maxColors) {
+    entries.sort((a, b) => b.n - a.n);
+    return entries.map(e => [e.r, e.g, e.b]);
+  }
+  let pal = medianCut(entries, maxColors);
+  // k-means 微调（样本不多时做，代价可控）
+  const iters = entries.length < 24000 ? 3 : 2;
+  for (let it = 0; it < iters; it++) {
+    const sum = pal.map(() => [0, 0, 0, 0]);
+    for (const e of entries) {
+      const i = nearestIdx(pal, e.r, e.g, e.b);
+      const s = sum[i];
+      s[0] += e.r * e.n; s[1] += e.g * e.n; s[2] += e.b * e.n; s[3] += e.n;
+    }
+    let moved = false;
+    for (let i = 0; i < pal.length; i++) {
+      const s = sum[i];
+      if (s[3] > 0) {
+        const nr = Math.round(s[0] / s[3]), ng = Math.round(s[1] / s[3]), nb = Math.round(s[2] / s[3]);
+        if (nr !== pal[i][0] || ng !== pal[i][1] || nb !== pal[i][2]) moved = true;
+        pal[i] = [nr, ng, nb];
+      }
+    }
+    if (!moved) break;
+  }
+  return pal;
+}
+function mapPixels(data, pal, cache) {
+  const n = data.length >> 2;
+  const out = new Uint8Array(n);
+  const pl = pal.length;
+  for (let p = 0; p < n; p++) {
+    const i = p << 2;
+    if (data[i + 3] < 128) { out[p] = 0; continue; }
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const key = ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2);
+    let v = cache[key];
+    if (v < 0) {
+      v = nearestIdx(pal, r, g, b) + 1;
+      if (v > pl) v = pl;
+      cache[key] = v;
+    }
+    out[p] = v;
+  }
+  return out;
+}
+
+/* ============================================================
+   4. GIF 编码
+   ============================================================ */
+function lzwEncode(indices, minCodeSize) {
+  const bw = new Buf(Math.max(256, indices.length >> 2));
+  const clear = 1 << minCodeSize, eoi = clear + 1;
+  let nBits = minCodeSize + 1, maxCode = (1 << nBits) - 1;
+  let free = eoi + 1;
+  let cur = 0, curBits = 0;
+  let dict = new Map();
+  const emit = code => {
+    cur |= code << curBits;
+    curBits += nBits;
+    while (curBits >= 8) { bw.u8(cur & 255); cur >>>= 8; curBits -= 8; }
+    if (free > maxCode && nBits < 12) { nBits++; maxCode = (1 << nBits) - 1; }
+  };
+  emit(clear);
+  if (!indices.length) { emit(eoi); if (curBits > 0) bw.u8(cur & 255); return bw.done(); }
+  let ent = indices[0];
+  for (let i = 1; i < indices.length; i++) {
+    const c = indices[i];
+    const key = (ent << 8) | c;
+    const got = dict.get(key);
+    if (got !== undefined) { ent = got; continue; }
+    emit(ent);
+    if (free < 4096) { dict.set(key, free); free++; }
+    else {
+      emit(clear);
+      dict = new Map(); free = eoi + 1; nBits = minCodeSize + 1; maxCode = (1 << nBits) - 1;
+    }
+    ent = c;
+  }
+  emit(ent);
+  emit(eoi);
+  if (curBits > 0) bw.u8(cur & 255);
+  return bw.done();
+}
+function writeSubBlocks(bw, data) {
+  for (let i = 0; i < data.length; i += 255) {
+    const n = Math.min(255, data.length - i);
+    bw.u8(n); bw.bytes(data.subarray(i, i + n));
+  }
+  bw.u8(0);
+}
+/**
+ * frames: [{data:Uint8ClampedArray, delay:number(1/100s)}]
+ */
+function encodeGif(frames, w, h, opt) {
+  opt = Object.assign({ colors: 256, delta: true, loop: 0 }, opt || {});
+  const maxColors = clamp(opt.colors | 0, 2, 255);
+  const pal = buildPalette(frames, w, h, maxColors);
+  const cache = new Int16Array(1 << 18).fill(-1);
+  const maps = frames.map(f => mapPixels(f.data, pal, cache));
+
+  // 调色板：0 号固定透明
+  const palOut = [[0, 0, 0]].concat(pal);
+  let bits = 1;
+  while ((1 << bits) < palOut.length) bits++;
+  if (bits < 2) bits = 2;
+  if (bits > 8) bits = 8;
+  const gctSize = 1 << bits;
+  const minCodeSize = bits;
+
+  const bw = new Buf(256 * 1024);
+  bw.str('GIF89a');
+  bw.u16(w); bw.u16(h);
+  bw.u8(0x80 | ((bits - 1) & 7) | 0x70);   // GCT + 8bit color res
+  bw.u8(0); bw.u8(0);
+  for (let i = 0; i < gctSize; i++) {
+    const c = palOut[i] || [0, 0, 0];
+    bw.u8(c[0]); bw.u8(c[1]); bw.u8(c[2]);
+  }
+  // NETSCAPE loop
+  bw.u8(0x21); bw.u8(0xFF); bw.u8(0x0B); bw.str('NETSCAPE2.0');
+  bw.u8(0x03); bw.u8(0x01); bw.u16(opt.loop || 0); bw.u8(0);
+
+  let prev = null;
+  for (let fi = 0; fi < maps.length; fi++) {
+    const cur = maps[fi];
+    let left = 0, top = 0, fw = w, fh = h;
+    let idx;
+    if (!prev || !opt.delta) {
+      idx = cur;
+    } else {
+      // 差分包围盒
+      let x0 = w, y0 = h, x1 = -1, y1 = -1;
+      for (let y = 0; y < h; y++) {
+        const base = y * w;
+        for (let x = 0; x < w; x++) {
+          if (cur[base + x] !== prev[base + x]) {
+            if (x < x0) x0 = x; if (x > x1) x1 = x;
+            if (y < y0) y0 = y; if (y > y1) y1 = y;
+          }
+        }
+      }
+      if (x1 < 0) { x0 = 0; y0 = 0; x1 = 0; y1 = 0; }
+      left = x0; top = y0; fw = x1 - x0 + 1; fh = y1 - y0 + 1;
+      idx = new Uint8Array(fw * fh);
+      for (let y = 0; y < fh; y++) {
+        const sb = (y + top) * w + left;
+        const db = y * fw;
+        for (let x = 0; x < fw; x++) {
+          const v = cur[sb + x];
+          idx[db + x] = (v === prev[sb + x]) ? 0 : v;
+        }
+      }
+    }
+    const delay = clamp(Math.round(frames[fi].delay || 10), 2, 65535);
+    // GCE
+    bw.u8(0x21); bw.u8(0xF9); bw.u8(0x04);
+    bw.u8((1 << 2) | 0x01);   // disposal=1, transparent=1
+    bw.u16(delay);
+    bw.u8(0);
+    bw.u8(0);
+    // Image descriptor
+    bw.u8(0x2C); bw.u16(left); bw.u16(top); bw.u16(fw); bw.u16(fh); bw.u8(0);
+    bw.u8(minCodeSize);
+    writeSubBlocks(bw, lzwEncode(idx, minCodeSize));
+    prev = cur;
+  }
+  bw.u8(0x3B);
+  return bw.done();
+}
+/** 在体积上限内挑最高画质：先降色，仍超限就抽帧 */
+function encodeGifFit(frames, w, h, limitBytes, opt) {
+  const start = clamp((opt && opt.colors) || 256, 8, 256);
+  const steps = [start, 224, 192, 160, 128, 96, 64, 48, 32, 24, 16, 12, 8];
+  const uniq = Array.from(new Set(steps.filter(v => v <= start))).sort((a, b) => b - a);
+  let best = null, bestColors = start, bestFrames = frames.length, dropped = false;
+  for (const c of uniq) {
+    const bytes = encodeGif(frames, w, h, Object.assign({}, opt, { colors: c }));
+    if (!best || bytes.length < best.length) { best = bytes; bestColors = c; }
+    if (!limitBytes || bytes.length <= limitBytes) return { bytes, colors: c, fits: true, frames: frames.length, dropped: false };
+  }
+  // 抽帧重试（保留总时长）
+  for (const step of [2, 3, 4]) {
+    if (frames.length <= step) break;
+    const pick = [];
+    for (let i = 0; i < frames.length; i += step) {
+      let d = 0;
+      for (let k = i; k < Math.min(i + step, frames.length); k++) d += frames[k].delay || 10;
+      pick.push({ data: frames[i].data, delay: d });
+    }
+    for (const c of [128, 96, 64, 48, 32, 24, 16]) {
+      const bytes = encodeGif(pick, w, h, Object.assign({}, opt, { colors: c }));
+      if (bytes.length < best.length) { best = bytes; bestColors = c; bestFrames = pick.length; dropped = true; }
+      if (!limitBytes || bytes.length <= limitBytes) return { bytes, colors: c, fits: true, frames: pick.length, dropped: true };
+    }
+  }
+  return { bytes: best, colors: bestColors, fits: !limitBytes ? true : best.length <= limitBytes, frames: bestFrames, dropped };
+}
+
+/* ============================================================
+   5. PNG 编码（自动在 24bit / 8bit 索引色间择优）
+   ============================================================ */
+async function deflateZlib(u8) {
+  if (typeof CompressionStream === 'undefined') throw new Error('当前浏览器不支持压缩');
+  const s = new Blob([u8]).stream().pipeThrough(new CompressionStream('deflate'));
+  return new Uint8Array(await new Response(s).arrayBuffer());
+}
+function pngChunk(type, data) {
+  const bw = new Buf(data.length + 12);
+  bw.u32be(data.length);
+  const t = new Uint8Array(4);
+  for (let i = 0; i < 4; i++) t[i] = type.charCodeAt(i);
+  bw.bytes(t); bw.bytes(data);
+  const crcBuf = new Uint8Array(4 + data.length);
+  crcBuf.set(t, 0); crcBuf.set(data, 4);
+  bw.u32be(crc32(crcBuf));
+  return bw.done();
+}
+async function encodePngIndexed(rgba, w, h, maxColors) {
+  const frames = [{ data: rgba }];
+  const pal = buildPalette(frames, w, h, clamp(maxColors, 2, 255));
+  const cache = new Int16Array(1 << 18).fill(-1);
+  const idx = mapPixels(rgba, pal, cache);
+  let hasTrans = false;
+  for (let i = 3; i < rgba.length; i += 4) if (rgba[i] < 128) { hasTrans = true; break; }
+  // 索引 0 是透明位（若不需要透明则把调色板整体前移）
+  const plte = [];
+  const trns = [];
+  let shift = 0;
+  if (hasTrans) {
+    plte.push(0, 0, 0); trns.push(0);
+    for (const c of pal) { plte.push(c[0], c[1], c[2]); trns.push(255); }
+  } else {
+    shift = 1;
+    for (const c of pal) { plte.push(c[0], c[1], c[2]); trns.push(255); }
+  }
+  let idxOut = idx;
+  if (shift) {
+    idxOut = new Uint8Array(idx.length);
+    for (let i = 0; i < idx.length; i++) idxOut[i] = idx[i] ? idx[i] - 1 : 0;
+  }
+  // 索引不能超过调色板长度
+  const maxIdx = (plte.length / 3) - 1;
+  for (let i = 0; i < idxOut.length; i++) if (idxOut[i] > maxIdx) idxOut[i] = maxIdx;
+  const raw = new Uint8Array((w + 1) * h);
+  for (let y = 0; y < h; y++) {
+    raw[y * (w + 1)] = 0;
+    raw.set(idxOut.subarray(y * w, y * w + w), y * (w + 1) + 1);
+  }
+  const idat = await deflateZlib(raw);
+  const ihdr = new Uint8Array(13);
+  const dv = new DataView(ihdr.buffer);
+  dv.setUint32(0, w); dv.setUint32(4, h);
+  ihdr[8] = 8; ihdr[9] = 3; ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
+  const parts = [
+    new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+    pngChunk('IHDR', ihdr),
+    pngChunk('PLTE', new Uint8Array(plte)),
+  ];
+  if (hasTrans) parts.push(pngChunk('tRNS', new Uint8Array(trns)));
+  parts.push(pngChunk('IDAT', idat));
+  parts.push(pngChunk('IEND', new Uint8Array(0)));
+  let total = 0; for (const p of parts) total += p.length;
+  const out = new Uint8Array(total); let o = 0;
+  for (const p of parts) { out.set(p, o); o += p.length; }
+  return out;
+}
+function canvasToPngBlob(canvas) {
+  return new Promise(res => canvas.toBlob(b => res(b), 'image/png'));
+}
+async function canvasToPngBytes(canvas) {
+  const b = await canvasToPngBlob(canvas);
+  return new Uint8Array(await b.arrayBuffer());
+}
+/** 优先无损 24bit；超出上限自动降级到索引色 */
+async function encodePngFit(canvas, limitBytes) {
+  const w = canvas.width, h = canvas.height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const rgba = ctx.getImageData(0, 0, w, h).data;
+  let p24 = null;
+  try { p24 = await canvasToPngBytes(canvas); } catch (e) { }
+  if (p24 && (!limitBytes || p24.length <= limitBytes)) return { bytes: p24, mode: '24bit' };
+  let best = p24, mode = '24bit';
+  for (const c of [256, 192, 128, 96, 64, 48, 32, 16]) {
+    const idx = await encodePngIndexed(rgba, w, h, c);
+    if (!best || idx.length < best.length) { best = idx; mode = 'indexed/' + c; }
+    if (!limitBytes || idx.length <= limitBytes) return { bytes: idx, mode: 'indexed/' + c };
+  }
+  return { bytes: best, mode };
+}
+/*__CORE__*/
+/* ============================================================
+   6. 图像处理
+   ============================================================ */
+const LIMIT = { gif: 300 * 1024, png: 200 * 1024, cover: 100 * 1024 };
+
+function applyStroke(cv, px) {
+  if (!px || px <= 0) return cv;
+  const w = cv.width, h = cv.height;
+  const sil = document.createElement('canvas');
+  sil.width = w; sil.height = h;
+  const sc = sil.getContext('2d');
+  sc.drawImage(cv, 0, 0);
+  sc.globalCompositeOperation = 'source-in';
+  sc.fillStyle = '#ffffff';
+  sc.fillRect(0, 0, w, h);
+  const out = document.createElement('canvas');
+  out.width = w; out.height = h;
+  const oc = out.getContext('2d');
+  const r = Math.ceil(px), rr = px * px;
+  for (let dy = -r; dy <= r; dy++) {
+    for (let dx = -r; dx <= r; dx++) {
+      if (dx * dx + dy * dy > rr) continue;
+      oc.drawImage(sil, dx, dy);
+    }
+  }
+  oc.drawImage(cv, 0, 0);
+  return out;
+}
+function drawFitted(src, sw, sh, size, fit, stroke, ctx) {
+  const pad = (fit === 'cover') ? 0 : Math.max(0, stroke || 0);
+  const avail = Math.max(1, size - pad * 2);
+  let s;
+  if (fit === 'cover') s = Math.max(size / sw, size / sh);
+  else s = Math.min(avail / sw, avail / sh);
+  const dw = Math.max(1, Math.round(sw * s));
+  const dh = Math.max(1, Math.round(sh * s));
+  const dx = Math.round((size - dw) / 2);
+  const dy = Math.round((size - dh) / 2);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, 0, 0, sw, sh, dx, dy, dw, dh);
+}
+function paintFit(src, sw, sh, size, fit, stroke) {
+  const cv = document.createElement('canvas');
+  cv.width = size; cv.height = size;
+  const ctx = cv.getContext('2d', { willReadFrequently: true });
+  drawFitted(src, sw, sh, size, fit, stroke, ctx);
+  return stroke > 0 ? applyStroke(cv, stroke) : cv;
+}
+async function getBitmap(asset) {
+  if (asset._bmp) return asset._bmp;
+  asset._bmp = await createImageBitmap(new Blob([asset.bytes], { type: asset.mime || 'image/png' }));
+  return asset._bmp;
+}
+/**
+ * 把素材渲染成目标尺寸的帧序列
+ * opt: {size, fit, stroke, frame(仅取该帧时)}   onlyIdx != null 时提前终止
+ */
+async function buildFrames(asset, opt, onlyIdx) {
+  const size = opt.size, fit = opt.fit || 'contain', stroke = Math.max(0, opt.stroke || 0);
+  const out = [];
+  if (asset.kind === 'gif') {
+    let srcCv = null, sctx = null;
+    walkGif(asset.bytes, (rgba, w, h, delay, i) => {
+      if (!srcCv || srcCv.width !== w || srcCv.height !== h) {
+        srcCv = document.createElement('canvas');
+        srcCv.width = w; srcCv.height = h;
+        sctx = srcCv.getContext('2d', { willReadFrequently: true });
+      }
+      sctx.putImageData(new ImageData(rgba, w, h), 0, 0);
+      out.push({ canvas: paintFit(srcCv, w, h, size, fit, stroke), delay: Math.max(2, delay || 10) });
+      return onlyIdx != null && i >= onlyIdx;
+    });
+  } else {
+    const bmp = await getBitmap(asset);
+    out.push({ canvas: paintFit(bmp, bmp.width, bmp.height, size, fit, stroke), delay: 100 });
+  }
+  return out;
+}
+function framesToRGBA(frames) {
+  return frames.map(f => {
+    const ctx = f.canvas.getContext('2d', { willReadFrequently: true });
+    return { data: ctx.getImageData(0, 0, f.canvas.width, f.canvas.height).data, delay: f.delay };
+  });
+}
+
+/* ============================================================
+   7. 状态
+   ============================================================ */
+const S = {
+  assets: [],
+  sel: null,
+  filter: 'all',
+  cards: Array.from({ length: 16 }, () => ({ gif: null, png: null, name: '', flip: false })),
+  cover: null,
+  expName: '我的表情包',
+  mode: 'zip',
+  dirHandle: null,
+  opt: { size: 300, fit: 'contain', stroke: 3, frame: 0, colors: 256, delta: true, autoFill: false },
+  playing: true,
+};
+const getAsset = id => S.assets.find(a => a.id === id) || null;
+const cardEls = [];
+
+/* ---------- 命名 ---------- */
+function baseKey(name) {
+  return String(name || '')
+    .replace(/^.*[\\\/]/, '')
+    .replace(/\.[a-z0-9]{1,5}$/i, '')
+    .replace(/[\s_\-]*[(（]?\d+[)）]?$/g, '')
+    .trim();
+}
+function kwWidth(s) { let w = 0; for (const ch of s) w += isCJK(ch) ? 1 : 0.5; return w; }
+function cleanKeyword(s) {
+  const src = String(s || '').replace(/[^\u4e00-\u9fff\u3040-\u30ffA-Za-z]/g, '');
+  let out = '';
+  for (const ch of src) {
+    if (kwWidth(out + ch) > 4) break;
+    out += ch;
+  }
+  return out;
+}
+function checkName(s) {
+  const v = String(s || '').trim();
+  if (!v) return { ok: false, why: '未填写' };
+  if (/[\d０-９]/.test(v)) return { ok: false, why: '含数字' };
+  if (!/^[\u4e00-\u9fff\u3040-\u30ffA-Za-z]+$/.test(v)) return { ok: false, why: '含标点/符号' };
+  if (kwWidth(v) > 4) return { ok: false, why: '超过 4 个字' };
+  return { ok: true, why: '' };
+}
+function safeFileName(s) {
+  return String(s || '').replace(/[\\\/:*?"<>|\r\n\t]/g, '').trim() || '未命名';
+}
+const mimeOf = n => {
+  const e = (n.split('.').pop() || '').toLowerCase();
+  return { gif: 'image/gif', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', bmp: 'image/bmp' }[e] || 'application/octet-stream';
+};
+
+/* ---------- 提示 ---------- */
+function toast(msg, type, ms) {
+  const d = document.createElement('div');
+  d.className = 'toast ' + (type || '');
+  d.textContent = msg;
+  $('#toasts').appendChild(d);
+  setTimeout(() => {
+    d.style.transition = '.22s'; d.style.opacity = '0'; d.style.transform = 'translateY(6px)';
+    setTimeout(() => d.remove(), 240);
+  }, ms || 2600);
+}
+
+/* ============================================================
+   8. 素材库
+   ============================================================ */
+function renderAssets() {
+  const box = $('#assetList');
+  const list = S.assets.filter(a => {
+    if (S.filter === 'all') return true;
+    if (S.filter === 'gif') return a.kind === 'gif';
+    return a.kind !== 'gif';
+  });
+  box.innerHTML = '';
+  if (!list.length) {
+    box.innerHTML = `<div class="empty-tip"><b>还没有素材</b>把 GIF / PNG / ZIP 拖到这里<br>或点右上角「导入素材」</div>`;
+    return;
+  }
+  for (const a of list) {
+    const el = document.createElement('div');
+    el.className = 'asset' + (S.sel === a.id ? ' sel' : '');
+    el.draggable = true;
+    el.dataset.id = a.id;
+    el.innerHTML = `
+      <div class="thumb"><img src="${a.url}" draggable="false" alt=""></div>
+      <div class="info">
+        <div class="nm">${escapeHTML(a.name)}</div>
+        <div class="meta">
+          <span class="badge ${a.kind === 'gif' ? 'gif' : 'png'}">${a.kind === 'gif' ? 'GIF' : 'PNG'}</span>
+          ${a.kind === 'gif' ? a.frames + ' 帧 · ' : ''}${a.w}×${a.h} · ${fmtBytes(a.size)}
+          ${a.gen ? '<span class="badge gen">生成</span>' : ''}
+        </div>
+      </div>
+      <button class="quick" title="放入空位">＋位</button>
+      <button class="del" title="删除">✕</button>`;
+    el.addEventListener('click', e => {
+      if (e.target.closest('.del')) {
+        e.stopPropagation();
+        removeAsset(a.id);
+        return;
+      }
+      if (e.target.closest('.quick')) {
+        e.stopPropagation();
+        quickPlace(a);
+        return;
+      }
+      selectAsset(a.id);
+    });
+    el.addEventListener('dragstart', e => {
+      e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setData('application/x-asset', a.id);
+      e.dataTransfer.setData('text/plain', a.name);
+      selectAsset(a.id, true);
+    });
+    box.appendChild(el);
+  }
+}
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function removeAsset(id) {
+  const i = S.assets.findIndex(a => a.id === id);
+  if (i < 0) return;
+  const a = S.assets[i];
+  try { URL.revokeObjectURL(a.url); } catch (e) { }
+  S.assets.splice(i, 1);
+  for (const c of S.cards) {
+    if (c.gif === id) c.gif = null;
+    if (c.png === id) c.png = null;
+  }
+  if (S.cover === id) S.cover = null;
+  if (S.sel === id) S.sel = null;
+  renderAssets(); renderBoard(); refreshPreview(); updateStats();
+}
+function quickPlace(a) {
+  const isGif = a.kind === 'gif';
+  const key = isGif ? 'gif' : 'png';
+  const idx = S.cards.findIndex(c => !c[key]);
+  if (idx < 0) { toast('没有空的' + (isGif ? ' GIF ' : ' PNG ') + '位了', 'warn'); return; }
+  assignCard(idx, a, true);
+}
+function addAssetSync(opt) {
+  const a = Object.assign({
+    id: uid('a'), gen: false, spec: null, frames: 1, mime: 'image/png'
+  }, opt);
+  a.base = opt.base || baseKey(a.name);
+  a.size = a.bytes.length;
+  a.url = URL.createObjectURL(new Blob([a.bytes], { type: a.mime }));
+  S.assets.push(a);
+  return a;
+}
+async function addAsset({ name, bytes, mime }) {
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  let kind = ext === 'gif' ? 'gif' : (ext === 'png' ? 'png' : (mime === 'image/gif' ? 'gif' : 'img'));
+  let w = 0, h = 0, fr = 1;
+  if (kind === 'gif') {
+    const info = gifInfo(bytes);
+    if (!info || !info.frameCount) return null;
+    w = info.width; h = info.height; fr = info.frameCount;
+  } else {
+    try {
+      const bmp = await createImageBitmap(new Blob([bytes], { type: mime || 'image/png' }));
+      w = bmp.width; h = bmp.height;
+      if (bmp.close) bmp.close();
+    } catch (e) { return null; }
+  }
+  return addAssetSync({ name, bytes, mime: mime || mimeOf(name), kind, w, h, frames: fr });
+}
+async function importFiles(files) {
+  const list = Array.from(files || []);
+  if (!list.length) return;
+  let n = 0, bad = 0;
+  const veil = showBusy('正在导入素材…');
+  try {
+    for (const f of list) {
+      try {
+        if (/\.zip$/i.test(f.name)) {
+          let entries;
+          try { entries = await unzip(await f.arrayBuffer()); }
+          catch (e) { bad++; addImportError(f.name + '：' + e.message); continue; }
+          const imgs = entries.filter(e => !e.error && /\.(gif|png|jpe?g|webp|bmp)$/i.test(e.name)
+            && !/(^|\/)__MACOSX\//.test(e.name) && !/\._/.test(e.name) && !/\.DS_Store$/i.test(e.name));
+          if (!imgs.length) { bad++; addImportError(f.name + '：压缩包里没有图片'); continue; }
+          for (const e of imgs) {
+            const nm = e.name.split(/[\\/]/).pop();
+            const a = await addAsset({ name: nm, bytes: e.data, mime: mimeOf(nm) });
+            if (a) n++; else { bad++; addImportError(nm + '：无法解析'); }
+          }
+        } else if (/\.(gif|png|jpe?g|webp|bmp)$/i.test(f.name)) {
+          const a = await addAsset({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()), mime: f.type || mimeOf(f.name) });
+          if (a) n++; else { bad++; addImportError(f.name + '：无法解析'); }
+        } else { bad++; addImportError(f.name + '：不是支持的格式'); }
+      } catch (e) {
+        bad++; addImportError(f.name + '：' + (e.message || e));
+      }
+      if (veil) veil.text('已导入 ' + n + ' 个…');
+    }
+  } finally {
+    hideBusy(veil);
+    renderAssets(); updateStats(); validateAll();
+  }
+  toast(`导入 ${n} 个素材` + (bad ? `，${bad} 个跳过：${IMPORT_ERRORS.slice(-2).join('；')}` : ''), bad ? 'warn' : 'ok', bad ? 5000 : 2600);
+  if (n && !S.sel) selectAsset(S.assets[S.assets.length - 1].id);
+}
+const IMPORT_ERRORS = [];
+function addImportError(msg) { IMPORT_ERRORS.push(msg); console.warn('导入跳过：' + msg); }
+function showBusy(text) {
+  const host = $('.panel-stage');
+  const el = document.createElement('div');
+  el.className = 'busy-veil';
+  el.innerHTML = `<div class="box"><span class="spin dark"></span><span class="tx">${escapeHTML(text)}</span></div>`;
+  host.style.position = 'relative';
+  host.appendChild(el);
+  return { el, text(t) { const x = el.querySelector('.tx'); if (x) x.textContent = t; } };
+}
+function hideBusy(h) { if (h && h.el && h.el.parentNode) h.el.parentNode.removeChild(h.el); }
+
+/* ============================================================
+   9. 选中 & 预览
+   ============================================================ */
+function selectAsset(id, silent) {
+  S.sel = id;
+  const a = getAsset(id);
+  S.opt.frame = 0;
+  if (a) {
+    const maxF = Math.max(0, (a.kind === 'gif' ? a.frames : 1) - 1);
+    const fr = $('#opFrame'), fn = $('#opFrameNum');
+    fr.max = maxF; fn.max = maxF; fr.value = 0; fn.value = 0;
+    fr.disabled = fn.disabled = a.kind !== 'gif';
+    $('#btnFullFrame').disabled = a.kind !== 'gif';
+    $('#pvName').textContent = a.name;
+    $('#pvTag').textContent = `${a.w}×${a.h}${a.kind === 'gif' ? ' · ' + a.frames + '帧' : ''}`;
+    $('#pvInfo').textContent = `${a.kind.toUpperCase()} · ${a.w}×${a.h} · ${fmtBytes(a.size)}`;
+    $('#pvEmpty').style.display = 'none';
+  } else {
+    $('#pvName').textContent = '未选中素材';
+    $('#pvTag').textContent = '';
+    $('#pvInfo').textContent = '—';
+    $('#pvOut').textContent = '—';
+    $('#pvCanvas').style.display = 'none';
+    $('#pvEmpty').style.display = '';
+  }
+  if (!silent) renderAssets(); else $$('.asset').forEach(el => el.classList.toggle('sel', el.dataset.id === id));
+  updateNote();
+  refreshPreview();
+}
+let pvToken = 0, pvTimer = null, pvLoop = null, pvFrames = [], pvIdx = 0;
+function refreshPreview() {
+  clearTimeout(pvTimer);
+  pvTimer = setTimeout(doPreview, 90);
+}
+async function doPreview() {
+  const a = S.sel ? getAsset(S.sel) : null;
+  const token = ++pvToken;
+  if (pvLoop) { clearTimeout(pvLoop); pvLoop = null; }
+  if (!a) { $('#pvCanvas').style.display = 'none'; $('#pvEmpty').style.display = ''; return; }
+  $('#pvCanvas').style.display = '';
+  $('#pvEmpty').style.display = 'none';
+  const cv = $('#pvCanvas');
+  const size = clamp(S.opt.size | 0, 16, 1200);
+  cv.width = size; cv.height = size;
+  const ctx = cv.getContext('2d');
+  $('#pvOut').textContent = '渲染中…';
+  try {
+    const frames = await buildFrames(a, S.opt);
+    if (token !== pvToken) return;
+    pvFrames = frames; pvIdx = 0;
+    $('#pvOut').textContent = `→ ${size}×${size}`;
+    const step = () => {
+      if (token !== pvToken) return;
+      const f = pvFrames[pvIdx % pvFrames.length];
+      if (!f) return;
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(f.canvas, 0, 0);
+      const d = clamp((f.delay || 10) * 10, 30, 600);
+      pvIdx++;
+      if (S.playing && pvFrames.length > 1) pvLoop = setTimeout(step, d);
+    };
+    S.playing = true;
+    step();
+  } catch (e) {
+    console.warn(e);
+    ctx.clearRect(0, 0, size, size);
+    toast('预览失败：' + e.message, 'err');
+  }
+}
+function updateNote() {
+  const size = clamp(S.opt.size | 0, 16, 1200);
+  const lim = size <= 210 ? LIMIT.cover : LIMIT.gif;
+  const a = S.sel ? getAsset(S.sel) : null;
+  if (!a) { $('#opNote').innerHTML = '生成会按当前参数产出<strong>新素材</strong>放进素材库，原文件永远不被修改。'; return; }
+  const tip = a.kind === 'gif' ? '「生成 PNG」= 取一帧转 PNG' : '「生成 GIF」= PNG 转 GIF';
+  $('#opNote').innerHTML = `输出 <b style="color:var(--text)">${size}×${size}</b>，上限 <b>${fmtBytes(lim)}</b>，超出自动降色；${tip}。`;
+}
+function updateStats() {
+  $('#statCount').textContent = S.assets.length;
+  const filled = S.cards.filter(c => c.gif || c.png).length;
+  $('#boardSub').textContent = filled + '/16';
+}
+/* ============================================================
+   10. 表情网格（16 格 + 封面）
+   ============================================================ */
+function buildGrid() {
+  const grid = $('#grid');
+  for (let i = 0; i < 16; i++) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.i = i;
+    el.innerHTML = `
+      <div class="bar" draggable="true">
+        <span class="grip"></span><span class="no">${pad2(i + 1)}</span>
+        <span class="st"></span>
+        <span class="x" title="清空">✕</span>
+      </div>
+      <div class="flip"><div class="flip-in">
+        <div class="face front" data-f="gif"></div>
+        <div class="face back" data-f="png"></div>
+      </div></div>
+      <div class="nm-row"><input class="nm" maxlength="10" placeholder="名称" spellcheck="false"><button class="tg g"></button></div>`;
+    // 拖拽排序
+    const bar = el.querySelector('.bar');
+    bar.addEventListener('dragstart', e => {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('application/x-card', String(i));
+      try { e.dataTransfer.setDragImage(el, el.offsetWidth / 2, 14); } catch (err) { }
+      el.classList.add('dragging');
+    });
+    bar.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+      $$('.card').forEach(c => c.classList.remove('drop'));
+    });
+    // 拖入
+    el.addEventListener('dragover', e => {
+      const t = e.dataTransfer.types;
+      if (t.includes('application/x-asset') || t.includes('application/x-card')) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = t.includes('application/x-card') ? 'move' : 'copy';
+        if (!el.classList.contains('drop')) { el.classList.add('drop'); }
+      }
+    });
+    el.addEventListener('dragleave', e => {
+      if (!el.contains(e.relatedTarget)) el.classList.remove('drop');
+    });
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      el.classList.remove('drop');
+      const cs = e.dataTransfer.getData('application/x-card');
+      const as = e.dataTransfer.getData('application/x-asset');
+      if (cs !== '') { moveCard(parseInt(cs, 10), i); return; }
+      if (as) { const a = getAsset(as); if (a) assignCard(i, a); }
+    });
+    // 点脸
+    el.querySelectorAll('.face').forEach(f => {
+      f.addEventListener('click', () => openPicker(i, f.dataset.f));
+    });
+    // 名称
+    const nm = el.querySelector('.nm');
+    nm.addEventListener('input', () => {
+      S.cards[i].name = nm.value;
+      nm.classList.toggle('err', !!nm.value && !checkName(nm.value).ok);
+      updateStats(); validateAll();
+    });
+    nm.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const next = cardEls[i + 1];
+        if (next) next.querySelector('.nm').focus();
+      }
+    });
+    // 翻转
+    el.querySelector('.tg').addEventListener('click', () => {
+      S.cards[i].flip = !S.cards[i].flip;
+      updateCard(i);
+    });
+    // 清空
+    el.querySelector('.x').addEventListener('click', e => {
+      e.stopPropagation();
+      S.cards[i] = { gif: null, png: null, name: '', flip: false };
+      updateCard(i); updateStats(); validateAll();
+    });
+    cardEls.push(el);
+    grid.appendChild(el);
+  }
+  renderBoard();
+}
+function moveCard(from, to) {
+  if (from === to || isNaN(from) || isNaN(to)) return;
+  const item = S.cards.splice(from, 1)[0];
+  S.cards.splice(to, 0, item);
+  renderBoard();
+  validateAll();
+  toast(`已移到 ${pad2(to + 1)} 号位`, '', 1400);
+}
+function setFace(el, assetId, type) {
+  const a = assetId ? getAsset(assetId) : null;
+  if (a) {
+    if (el.dataset.aid !== a.id) {
+      el.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = a.url; img.draggable = false; img.alt = '';
+      el.appendChild(img);
+      el.dataset.aid = a.id;
+    }
+    el.title = `${a.name}\n${a.w}×${a.h} · ${fmtBytes(a.size)}${a.kind === 'gif' ? ' · ' + a.frames + ' 帧' : ''}\n点击可更换`;
+    el.classList.add('clickable');
+  } else {
+    if (el.dataset.aid !== '__empty') {
+      el.innerHTML = `<div class="ph"><b>＋</b><span>${type.toUpperCase()}</span></div>`;
+      el.dataset.aid = '__empty';
+    }
+    el.title = '点击选择 ' + type.toUpperCase() + '（也可从素材库拖进来）';
+    el.classList.add('clickable');
+  }
+}
+function updateCard(i) {
+  const el = cardEls[i];
+  if (!el) return;
+  const c = S.cards[i];
+  el.dataset.i = i;
+  el.querySelector('.no').textContent = pad2(i + 1);
+  setFace(el.querySelector('.face.front'), c.gif, 'gif');
+  setFace(el.querySelector('.face.back'), c.png, 'png');
+  el.querySelector('.flip').classList.toggle('flipped', !!c.flip);
+  const nm = el.querySelector('.nm');
+  if (document.activeElement !== nm) nm.value = c.name;
+  nm.classList.toggle('err', !!c.name && !checkName(c.name).ok);
+  const tg = el.querySelector('.tg');
+  tg.className = 'tg ' + (c.flip ? 'p' : 'g');
+  tg.innerHTML = (c.flip ? 'PNG' : 'GIF') + ' <span class="sw">⇄</span>';
+  const has = !!(c.gif && c.png);
+  const st = el.querySelector('.st');
+  st.className = 'st ' + (has ? 'ok' : ((c.gif || c.png) ? 'bad' : 'none'));
+  st.title = has ? 'GIF / PNG 已齐' : ((c.gif || c.png) ? '缺另一半' : '空位');
+  el.classList.toggle('filled', !!(c.gif || c.png));
+}
+function renderBoard() {
+  const grid = $('#grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 16; i++) { updateCard(i); grid.appendChild(cardEls[i]); }
+  updateStats(); updateCover();
+  requestAnimationFrame(() => { fitBoard(); updateBoardScroll(); });
+}
+function isUsed(id) {
+  return S.cards.some(c => c.gif === id || c.png === id) || S.cover === id;
+}
+/** 同名配对时优先取已规整/新生成的素材 */
+function mateScore(a, targetKind) {
+  let s = 0;
+  if (a.gen) s += 4;
+  if (a.spec && a.spec.size === 300) s += 3;
+  if (a.kind === targetKind) s += 2;
+  return s;
+}
+function pickMate(excludeId, baseKey, wantKind) {
+  const k = String(baseKey || '').toLowerCase();
+  if (!k) return null;
+  const cands = S.assets.filter(x => x.id !== excludeId && (x.base || '').toLowerCase() === k
+    && (x.kind === 'gif' ? 'gif' : 'png') === wantKind);
+  cands.sort((a, b) => {
+    const ua = isUsed(a.id) ? 0 : 1, ub = isUsed(b.id) ? 0 : 1;
+    if (ua !== ub) return ub - ua;
+    return mateScore(b) - mateScore(a);
+  });
+  return cands[0] || null;
+}
+function assignCard(i, a, silent) {
+  const c = S.cards[i];
+  const key = a.kind === 'gif' ? 'gif' : 'png';
+  c[key] = a.id;
+  c.flip = key === 'png';
+  if (!c.name) c.name = cleanKeyword(a.base) || '';
+  const other = key === 'gif' ? 'png' : 'gif';
+  if (!c[other]) {
+    const mate = pickMate(a.id, a.base, other);
+    if (mate) c[other] = mate.id;
+  }
+  updateCard(i); updateStats(); validateAll();
+  if (S.opt.autoFill) {
+    // 仅当勾选了自动填充且是生成结果时由 generate 处理
+  }
+}
+function updateCover() {
+  const slot = $('#coverSlot');
+  const a = S.cover ? getAsset(S.cover) : null;
+  let img = slot.querySelector('img');
+  const ph = slot.querySelector('.ph');
+  if (a) {
+    if (!img) { img = document.createElement('img'); img.draggable = false; slot.insertBefore(img, slot.firstChild); }
+    if (img.getAttribute('src') !== a.url) img.src = a.url;
+    img.style.display = '';
+    ph.style.display = 'none';
+  } else {
+    if (img) img.style.display = 'none';
+    ph.style.display = '';
+  }
+  const nm = safeFileName(S.expName) || '未命名表情包';
+  $('#coverTitle').textContent = nm;
+  let cnt = 0, bytes = 0;
+  S.cards.forEach(c => {
+    if (c.gif) { cnt++; const x = getAsset(c.gif); if (x) bytes += x.size; }
+    if (c.png) { const y = getAsset(c.png); if (y) bytes += y.size; }
+  });
+  if (a) bytes += a.size;
+  $('#coverDesc').innerHTML = a
+    ? `<b>${cnt}/16</b> 个表情 · 约 ${fmtBytes(bytes)} · 封面 ${a.w}×${a.h}`
+    : `<b>${cnt}/16</b> 个表情 · 约 ${fmtBytes(bytes)} · <span style="color:var(--warn)">还差封面</span>`;
+}
+
+/* ---------- 选择器 ---------- */
+function openModal(html, mount) {
+  const mask = $('#mask'), modal = $('#modal');
+  modal.innerHTML = html;
+  mask.classList.add('on');
+  const close = () => { mask.classList.remove('on'); modal.innerHTML = ''; document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  mask.onclick = e => { if (e.target === mask) close(); };
+  modal.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', close));
+  if (mount) mount(modal, close);
+  return close;
+}
+function openPicker(i, face) {
+  const want = face === 'gif' ? 'gif' : 'png';
+  const list = S.assets.filter(a => want === 'gif' ? a.kind === 'gif' : a.kind !== 'gif');
+  const title = `为 ${pad2(i + 1)} 号位选择 ${want.toUpperCase()}`;
+  const pick = a => {
+    assignCard(i, a);
+    const c = S.cards[i];
+    if (c && want === 'png') c.flip = true;
+    updateCard(i);
+    close();
+  };
+  const html = `
+    <div class="modal-hd"><h3>${title}</h3>
+      <span style="font-size:11px;color:var(--muted)">已选中的素材会显示在 ${want === 'gif' ? '正面' : '背面'}</span>
+      <button class="x" data-close>✕</button></div>
+    <div class="modal-bd">
+      ${list.length ? `<div class="pick-grid" id="pickGrid"></div>` :
+      `<div style="text-align:center;padding:26px 0;color:var(--muted);font-size:12px;line-height:1.9">
+         素材库里还没有 ${want.toUpperCase()} 素材<br><span style="font-size:11px">先导入，或在左侧选中素材后用「生成 ${want.toUpperCase()}」</span>
+       </div>`}
+    </div>
+    <div class="modal-ft">
+      <span style="font-size:11px;color:var(--muted)">${list.length} 个可用素材</span>
+      <span class="sp"></span>
+      ${quickMateHTML(i, want)}
+      <button class="btn" data-close>取消</button>
+    </div>`;
+  let close;
+  close = openModal(html, (modal, cl) => {
+    close = cl;
+    const g = modal.querySelector('#pickGrid');
+    if (g) {
+      for (const a of list) {
+        const d = document.createElement('div');
+        d.className = 'pick';
+        d.innerHTML = `<div class="im"><img src="${a.url}" draggable="false"></div>
+          <div class="nm">${escapeHTML(a.base)}</div>
+          <div class="dim">${a.w}×${a.h}</div>`;
+        d.title = `${a.name}\n${a.w}×${a.h} · ${fmtBytes(a.size)}`;
+        d.addEventListener('click', () => pick(a));
+        g.appendChild(d);
+      }
+    }
+    const q = modal.querySelector('#btnQuickMate');
+    if (q) q.addEventListener('click', async () => {
+      const src = want === 'png' ? S.cards[i].gif : S.cards[i].png;
+      if (!src) return;
+      q.disabled = true;
+      q.textContent = '生成中…';
+      try {
+        const out = await genFromAsset(getAsset(src), want === 'png' ? 'png' : 'gif', true);
+        if (out) { assignCard(i, out); if (want === 'png') S.cards[i].flip = true; updateCard(i); }
+        cl();
+      } finally { q.disabled = false; }
+    });
+  });
+}
+function quickMateHTML(i, want) {
+  const c = S.cards[i];
+  const src = want === 'png' ? c.gif : c.png;
+  if (!src) return '';
+  return `<button class="btn" id="btnQuickMate">用当前 ${want === 'png' ? 'GIF' : 'PNG'} 生成 ${want.toUpperCase()}</button>`;
+}
+
+/* ============================================================
+   11. 生成（实例化，不动原素材）
+   ============================================================ */
+async function genFromAsset(src, kind, quiet) {
+  if (!src) return null;
+  const isCover = kind === 'cover';
+  const size = isCover ? 200 : clamp(S.opt.size | 0, 16, 1200);
+  const limit = isCover ? LIMIT.cover : (kind === 'png' ? LIMIT.png : LIMIT.gif);
+  const stroke = isCover ? 0 : S.opt.stroke;
+  const fit = S.opt.fit;
+  const frameIdx = clamp(S.opt.frame | 0, 0, Math.max(0, (src.frames || 1) - 1));
+  let frames, bytes, info = '', outFrames = 1;
+  try {
+    frames = await buildFrames(src, { size, fit, stroke }, kind === 'png' ? frameIdx : null);
+  } catch (e) { toast('渲染失败：' + e.message, 'err'); return null; }
+  if (!frames.length) { toast('素材没有可用帧', 'err'); return null; }
+  if (kind === 'gif') {
+    const rg = framesToRGBA(frames);
+    const r = encodeGifFit(rg, size, size, limit, { colors: S.opt.colors, delta: S.opt.delta });
+    bytes = r.bytes;
+    outFrames = r.frames;
+    info = `${r.colors} 色` + (r.dropped ? ` · 抽帧至 ${r.frames} 帧` : '');
+    if (!r.fits) toast(`GIF 仍超出 ${fmtBytes(limit)}，可减少帧数或降低颜色`, 'warn', 3600);
+    else if (r.dropped) toast(`为装进 ${fmtBytes(limit)}，已抽帧到 ${r.frames} 帧`, 'warn', 3600);
+  } else {
+    const r = await encodePngFit(frames[0].canvas, limit);
+    bytes = r.bytes;
+    info = r.mode;
+  }
+  const suffix = isCover ? '封面' : kind.toUpperCase();
+  const nm = `${src.base}_${suffix}${isCover ? '' : '_' + size}`;
+  const out = addAssetSync({
+    name: nm, bytes, kind: kind === 'gif' ? 'gif' : 'png',
+    mime: kind === 'gif' ? 'image/gif' : 'image/png',
+    w: size, h: size, frames: kind === 'gif' ? outFrames : 1,
+    gen: true, base: src.base,
+    spec: { kind: kind === 'gif' ? 'gif' : 'png', size, stroke, fit }
+  });
+  out.srcId = src.id;
+  if (!quiet) {
+    renderAssets();
+    toast(`已生成 ${nm}（${fmtBytes(bytes.length)}，${info}）`, 'ok', 3200);
+    if (S.opt.autoFill) {
+      const isGif = kind === 'gif';
+      const key = isGif ? 'gif' : 'png';
+      const other = isGif ? 'png' : 'gif';
+      const base = (src.base || '').toLowerCase();
+      let idx = S.cards.findIndex(c => {
+        if (c[key]) return false;
+        const o = getAsset(c[other]);
+        return o && (o.base || '').toLowerCase() === base;
+      });
+      if (idx < 0) idx = S.cards.findIndex(c => !c[key]);
+      if (idx >= 0) { assignCard(idx, out); toast('已填入 ' + pad2(idx + 1) + ' 号位', 'ok', 2000); }
+      else toast('没有空位可自动填入', 'warn');
+    }
+  }
+  return out;
+}
+async function generate(kind) {
+  const a = S.sel ? getAsset(S.sel) : null;
+  if (!a) { toast('先在左侧选中一个素材', 'warn'); return; }
+  const h = showBusy(kind === 'cover' ? '正在生成封面…' : '正在生成…');
+  try {
+    await genFromAsset(a, kind, false);
+  } catch (e) {
+    console.error(e);
+    toast('生成失败：' + e.message, 'err');
+  } finally { hideBusy(h); }
+  updateStats(); validateAll();
+}
+
+/* ============================================================
+   12. 自检 / 校验
+   ============================================================ */
+function collectIssues() {
+  const errors = [], warns = [];
+  let both = 0, partial = 0;
+  const names = new Map();
+  S.cards.forEach((c, i) => {
+    const pos = pad2(i + 1);
+    if (c.gif && c.png) both++;
+    else if (c.gif || c.png) { partial++; errors.push(`${pos} 号位：GIF / PNG 只填了一半`); }
+    if (c.gif || c.png) {
+      const r = checkName(c.name);
+      if (!r.ok) errors.push(`${pos} 号位：名称${r.why}`);
+      else {
+        const k = c.name.trim();
+        if (names.has(k)) errors.push(`${pos} 号位：名称「${k}」与 ${names.get(k)} 重复`);
+        else names.set(k, pos);
+      }
+    }
+  });
+  if (both < 16) warns.push(`只填了 ${both}/16 个位置，未填的不会导出`);
+  if (!S.cover) errors.push('还没放封面图（200×200 PNG）');
+  return { errors, warns, both };
+}
+function validateAll() { renderCheck(); renderTree(); updateCover(); }
+function renderCheck() {
+  const { errors, warns, both } = collectIssues();
+  const items = [
+    { ok: both === 16, label: '表情数量', val: both + '/16', level: both === 16 ? 'ok' : 'err' },
+    { ok: !!S.cover, label: '封面图', val: S.cover ? '已就绪' : '缺失', level: S.cover ? 'ok' : 'err' },
+    { ok: errors.filter(e => e.includes('名称')).length === 0, label: '命名合规', val: errors.filter(e => e.includes('名称')).length ? errors.filter(e => e.includes('名称')).length + ' 处问题' : '通过', level: errors.filter(e => e.includes('名称')).length ? 'err' : 'ok' },
+    { ok: true, label: '尺寸规整', val: '导出时自动', level: 'ok' },
+    { ok: true, label: '体积上限', val: '自动降色', level: 'ok' },
+  ];
+  const box = $('#chkList');
+  box.innerHTML = '';
+  for (const it of items) {
+    const d = document.createElement('div');
+    d.className = 'chk-item ' + it.level;
+    d.innerHTML = `<span class="ic">${it.level === 'ok' ? '✓' : '!'}</span>${it.label}<span class="sp">${it.val}</span>`;
+    box.appendChild(d);
+  }
+  $('#chkSub').textContent = errors.length ? errors.length + ' 项待处理' : '可以导出';
+  $('#expSub').textContent = S.mode === 'zip' ? 'ZIP' : '文件夹';
+  // 需要规整的素材数
+  let raw = 0;
+  S.cards.forEach(c => {
+    [['gif', c.gif, 300], ['png', c.png, 300]].forEach(([kind, id, size]) => {
+      if (!id) return;
+      const a = getAsset(id);
+      if (!a) return;
+      const passthrough = kind === 'gif'
+        ? (a.kind === 'gif' && a.spec && a.spec.kind === 'gif' && a.spec.size === size && a.spec.stroke === S.opt.stroke)
+        : ((a.kind !== 'gif' && a.w === size && a.h === size && a.size <= LIMIT.png) || (a.spec && a.spec.kind === 'png' && a.spec.size === size));
+      if (!passthrough) raw++;
+    });
+  });
+  if (S.cover) {
+    const a = getAsset(S.cover);
+    if (a && !(a.spec && a.spec.kind === 'png' && a.spec.size === 200) && !(a.kind !== 'gif' && a.w === 200 && a.h === 200)) raw++;
+  }
+  const hint = $('#expHint');
+  hint.innerHTML = raw
+    ? `有 <b style="color:var(--text)">${raw}</b> 个素材会在导出时自动规整到目标尺寸并压进体积上限。`
+    : '全部素材都已规整到位，导出即打包。';
+  if (S.mode === 'folder' && !S.dirHandle) {
+    hint.innerHTML += '<br><span style="color:var(--warn)">未授权文件夹：会连续下载 3 个独立文件。</span>';
+  } else {
+    hint.innerHTML += '<br>压缩包内为平铺文件，无嵌套文件夹。';
+  }
+  const nothing = both === 0 && !S.cover;
+  $('#btnExport').disabled = nothing;
+  if (nothing) hint.innerHTML = '先往 16 个格子里放表情，再导出。';
+}
+function renderTree() {
+  const nm = safeFileName(S.expName) || '未命名表情包';
+  const n = S.cards.filter(c => c.gif || c.png).length;
+  const t = $('#treeView');
+  if (S.mode === 'zip') {
+    t.innerHTML = `<div class="f">${escapeHTML(nm)}.zip</div>
+      <div>├ <span class="t">${escapeHTML(nm)}_gif.zip</span> <span class="b">· ${n} 个 GIF</span></div>
+      <div>├ <span class="t">${escapeHTML(nm)}_png.zip</span> <span class="b">· ${n} 个 PNG</span></div>
+      <div>└ ${escapeHTML(nm)}_封面.png</div>`;
+  } else {
+    t.innerHTML = `<div class="f">${escapeHTML(nm)}/</div>
+      <div>├ <span class="t">${escapeHTML(nm)}_gif.zip</span> <span class="b">· ${n} 个 GIF</span></div>
+      <div>├ <span class="t">${escapeHTML(nm)}_png.zip</span> <span class="b">· ${n} 个 PNG</span></div>
+      <div>└ ${escapeHTML(nm)}_封面.png</div>`;
+  }
+}
+/* ============================================================
+   13. 导出
+   ============================================================ */
+async function ensureBytes(id, kind, size, limit) {
+  const a = getAsset(id);
+  if (!a) return null;
+  if (kind === 'gif') {
+    if (a.kind === 'gif' && a.spec && a.spec.kind === 'gif' && a.spec.size === size && a.spec.stroke === S.opt.stroke) return a.bytes;
+  } else {
+    if (a.kind !== 'gif' && a.w === size && a.h === size && a.size <= limit) return a.bytes;
+    if (a.spec && a.spec.kind === 'png' && a.spec.size === size) return a.bytes;
+  }
+  const frameIdx = kind === 'png' ? clamp(S.opt.frame | 0, 0, Math.max(0, (a.frames || 1) - 1)) : null;
+  const frames = await buildFrames(a, { size, fit: S.opt.fit, stroke: S.opt.stroke }, frameIdx);
+  if (!frames.length) return null;
+  if (kind === 'gif') {
+    const r = encodeGifFit(framesToRGBA(frames), size, size, limit, { colors: S.opt.colors, delta: S.opt.delta });
+    return r.bytes;
+  }
+  const r = await encodePngFit(frames[0].canvas, limit);
+  return r.bytes;
+}
+async function ensureCover() {
+  const a = getAsset(S.cover);
+  if (!a) return null;
+  if (a.spec && a.spec.kind === 'png' && a.spec.size === 200) return a.bytes;
+  if (a.kind !== 'gif' && a.w === 200 && a.h === 200 && a.size <= LIMIT.cover) return a.bytes;
+  const frames = await buildFrames(a, { size: 200, fit: S.opt.fit, stroke: 0 });
+  if (!frames.length) return null;
+  const r = await encodePngFit(frames[0].canvas, LIMIT.cover);
+  return r.bytes;
+}
+function confirmModal(opt) {
+  return new Promise(resolve => {
+    const mask = $('#mask'), modal = $('#modal');
+    modal.innerHTML = `
+      <div class="modal-hd"><h3>${escapeHTML(opt.title)}</h3><button class="x" data-close>✕</button></div>
+      <div class="modal-bd">${opt.html}</div>
+      <div class="modal-ft"><span class="sp"></span>
+        ${opt.cancel === null ? '' : `<button class="btn" data-close>${opt.cancel || '返回修改'}</button>`}
+        <button class="btn primary" id="cfmOk">${opt.ok || '继续'}</button></div>`;
+    mask.classList.add('on');
+    const finish = v => { mask.classList.remove('on'); modal.innerHTML = ''; resolve(v); };
+    modal.querySelector('#cfmOk').onclick = () => finish(true);
+    modal.querySelectorAll('[data-close]').forEach(b => b.onclick = () => finish(false));
+    mask.onclick = e => { if (e.target === mask) finish(false); };
+  });
+}
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 6000);
+}
+async function blobToU8(b) { return new Uint8Array(await b.arrayBuffer()); }
+async function writeFile(dir, name, blob) {
+  const fh = await dir.getFileHandle(name, { create: true });
+  const w = await fh.createWritable();
+  await w.write(blob);
+  await w.close();
+}
+async function doExport() {
+  if (S.busy) return;
+  const { errors, warns } = collectIssues();
+  if (errors.length) {
+    const okGo = await confirmModal({
+      title: '还差一点，确认导出？',
+      html: `<div class="warn-list">${errors.slice(0, 12).map(e => `<div class="e">· ${escapeHTML(e)}</div>`).join('')}
+        ${errors.length > 12 ? `<div style="color:var(--muted)">…另有 ${errors.length - 12} 项</div>` : ''}
+        ${warns.map(w => `<div class="w">· ${escapeHTML(w)}</div>`).join('')}
+        <div style="margin-top:10px;color:var(--muted)">未填的格子不会进入压缩包，导出内容可能不符合平台要求。</div></div>`,
+      ok: '仍然导出'
+    });
+    if (!okGo) return;
+  }
+  S.busy = true;
+  const btn = $('#btnExport'), bar = $('#progress i'), prog = $('#progress');
+  const oldTxt = btn.textContent;
+  btn.disabled = true; prog.classList.add('on'); bar.style.width = '2%';
+  try {
+    const nm = safeFileName(S.expName) || '未命名表情包';
+    const gifFiles = [], pngFiles = [];
+    const report = [];
+    for (let i = 0; i < 16; i++) {
+      const c = S.cards[i];
+      const pos = pad2(i + 1);
+      const kw = (c.name || '').trim() || '未命名';
+      if (c.gif) {
+        btn.textContent = `GIF ${pos} / 16`;
+        const b = await ensureBytes(c.gif, 'gif', 300, LIMIT.gif);
+        if (b) {
+          gifFiles.push({ name: `${kw}_${pos}.gif`, data: b });
+          report.push({ pos, type: 'gif', sz: b.length });
+        }
+      }
+      if (c.png) {
+        btn.textContent = `PNG ${pos} / 16`;
+        const b = await ensureBytes(c.png, 'png', 300, LIMIT.png);
+        if (b) pngFiles.push({ name: `${kw}_${pos}.png`, data: b });
+      }
+      bar.style.width = (6 + (i + 1) / 16 * 72).toFixed(1) + '%';
+      await sleep(0);
+    }
+    btn.textContent = '打包中…';
+    const coverB = await ensureCover();
+    const gifZip = makeZip(gifFiles);
+    const pngZip = makeZip(pngFiles);
+    const coverName = `${nm}_封面.png`;
+    bar.style.width = '88%';
+    await sleep(0);
+
+    const deliverables = [];
+    deliverables.push({ name: `${nm}_gif.zip`, blob: gifZip });
+    deliverables.push({ name: `${nm}_png.zip`, blob: pngZip });
+    if (coverB) deliverables.push({ name: coverName, blob: new Blob([coverB], { type: 'image/png' }) });
+
+    let where = '';
+    if (S.mode === 'zip') {
+      const entries = [];
+      for (const d of deliverables) entries.push({ name: d.name, data: await blobToU8(d.blob) });
+      const zipBlob = makeZip(entries);
+      if (S.dirHandle) {
+        await writeFile(S.dirHandle, `${nm}.zip`, zipBlob);
+        where = '已保存到「' + S.dirHandle.name + '」文件夹';
+      } else {
+        download(zipBlob, `${nm}.zip`);
+        where = '已交给浏览器下载（默认下载目录）';
+      }
+      deliverables.push({ name: `${nm}.zip`, blob: zipBlob, main: true });
+    } else {
+      if (S.dirHandle) {
+        const sub = await S.dirHandle.getDirectoryHandle(nm, { create: true });
+        for (const d of deliverables) await writeFile(sub, d.name, d.blob);
+        where = '已保存到「' + S.dirHandle.name + ' / ' + nm + '」';
+      } else {
+        for (const d of deliverables) { download(d.blob, d.name); await sleep(180); }
+        where = '已交给浏览器下载（3 个文件，位于默认下载目录）';
+      }
+    }
+    bar.style.width = '100%';
+    const totalGif = gifFiles.reduce((s, f) => s + f.data.length, 0);
+    const totalPng = pngFiles.reduce((s, f) => s + f.data.length, 0);
+    const overG = gifFiles.filter(f => f.data.length > LIMIT.gif);
+    const overP = pngFiles.filter(f => f.data.length > LIMIT.png);
+    const rows = [
+      ['GIF 包', `${gifFiles.length} 个 · ${fmtBytes(totalGif)}`, gifFiles.length ? 'ok' : 'err'],
+      ['PNG 包', `${pngFiles.length} 个 · ${fmtBytes(totalPng)}`, pngFiles.length ? 'ok' : 'err'],
+      ['封面', coverB ? fmtBytes(coverB.length) : '缺', coverB ? 'ok' : 'err'],
+    ];
+    const overList = overG.concat(overP).map(f => `${f.name} ${fmtBytes(f.data.length)}`).filter(Boolean);
+    await confirmModal({
+      title: '导出完成',
+      ok: '好的',
+      cancel: null,
+      html: `<div style="font-size:12px;line-height:2">
+        <div style="color:var(--ok);font-weight:600;margin-bottom:8px">✓ ${escapeHTML(where)}</div>
+        ${rows.map(r => `<div class="chk-item ${r[2]}"><span class="ic">${r[2] === 'ok' ? '✓' : '!'}</span>${r[0]}<span class="sp">${r[1]}</span></div>`).join('')}
+        <div style="margin-top:10px;color:var(--muted);font-size:11px;line-height:1.8">
+          压缩包内为平铺文件，无嵌套文件夹；文件名格式 <code style="background:var(--panel3);padding:1px 4px;border-radius:4px">关键词_编号.gif</code>。
+          ${overList.length ? `<br><span style="color:var(--warn)">超限：${escapeHTML(overList.join('、'))}</span>` : ''}
+        </div></div>`
+    });
+    toast('导出完成', 'ok');
+  } catch (e) {
+    console.error(e);
+    toast('导出失败：' + e.message, 'err', 5000);
+  } finally {
+    S.busy = false;
+    btn.disabled = false;
+    btn.textContent = oldTxt;
+    setTimeout(() => { prog.classList.remove('on'); bar.style.width = '0'; }, 900);
+  }
+}
+
+/* ============================================================
+   14. 事件绑定 / 初始化
+   ============================================================ */
+function syncSize(v) {
+  v = clamp(v | 0, 16, 1200);
+  S.opt.size = v;
+  $('#opSize').value = clamp(v, 64, 800);
+  const num = $('#opSizeNum');
+  if (document.activeElement !== num) num.value = v;
+  $$('#sizePreset button').forEach(b => b.classList.toggle('on', +b.dataset.size === v));
+  updateNote(); refreshPreview();
+}
+function bindEvents() {
+  $('#btnImport').onclick = () => $('#fileInput').click();
+  $('#fileInput').onchange = async e => {
+    const files = Array.from(e.target.files || []);
+    await importFiles(files);
+    e.target.value = '';
+  };
+  $('#assetFilter').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.filter = b.dataset.f;
+    $$('#assetFilter button').forEach(x => x.classList.toggle('on', x === b));
+    renderAssets();
+  };
+  $('#sizePreset').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const v = +b.dataset.size;
+    if (v) syncSize(v);
+    else { $$('#sizePreset button').forEach(x => x.classList.toggle('on', x === b)); $('#opSizeNum').focus(); }
+  };
+  $('#opSize').oninput = e => syncSize(+e.target.value);
+  $('#opSizeNum').oninput = e => { const v = +e.target.value; if (v >= 16) syncSize(v); };
+  $('#fitSeg').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.opt.fit = b.dataset.fit;
+    $$('#fitSeg button').forEach(x => x.classList.toggle('on', x === b));
+    refreshPreview();
+  };
+  $('#opStroke').oninput = e => { S.opt.stroke = +e.target.value; $('#opStrokeNum').value = e.target.value; refreshPreview(); };
+  $('#opStrokeNum').oninput = e => {
+    const v = clamp(+e.target.value | 0, 0, 24);
+    S.opt.stroke = v; $('#opStroke').value = clamp(v, 0, 12); refreshPreview();
+  };
+  $('#opFrame').oninput = e => { S.opt.frame = +e.target.value; $('#opFrameNum').value = e.target.value; refreshPreview(); };
+  $('#opFrameNum').oninput = e => {
+    const max = +$('#opFrameNum').max || 0;
+    const v = clamp(+e.target.value | 0, 0, max);
+    S.opt.frame = v; $('#opFrame').value = v; refreshPreview();
+  };
+  $('#btnFullFrame').onclick = async () => {
+    const a = S.sel ? getAsset(S.sel) : null;
+    if (!a || a.kind !== 'gif') return;
+    const h = showBusy('分析帧完整性…');
+    try {
+      let best = 0, bestC = -1;
+      walkGif(a.bytes, (rgba, w, hh, delay, i) => {
+        let c = 0;
+        for (let p = 3; p < rgba.length; p += 16) if (rgba[p] > 128) c++;
+        if (c > bestC) { bestC = c; best = i; }
+      });
+      S.opt.frame = best;
+      $('#opFrame').value = best; $('#opFrameNum').value = best;
+      refreshPreview();
+      toast('已选第 ' + (best + 1) + ' 帧（最完整）', 'ok');
+    } finally { hideBusy(h); }
+  };
+  $('#opColors').oninput = e => { S.opt.colors = +e.target.value; $('#opColorsVal').textContent = e.target.value; };
+  $('#opDelta').onchange = e => { S.opt.delta = e.target.checked; };
+  $('#opAutoFill').onchange = e => { S.opt.autoFill = e.target.checked; };
+  $('#btnGenGif').onclick = () => generate('gif');
+  $('#btnGenPng').onclick = () => generate('png');
+  $('#btnGenCover').onclick = () => generate('cover');
+
+  $('#btnAutoPair').onclick = autoPair;
+  $('#btnClearAll').onclick = async () => {
+    if (!S.cards.some(c => c.gif || c.png) && !S.cover) return;
+    const ok = await confirmModal({ title: '清空预览板？', html: '<div style="font-size:12px;color:var(--sub)">会清掉 16 个格子和封面（素材库不受影响）。</div>', ok: '清空' });
+    if (!ok) return;
+    S.cards = Array.from({ length: 16 }, () => ({ gif: null, png: null, name: '', flip: false }));
+    S.cover = null;
+    renderBoard(); validateAll();
+  };
+  // 封面
+  const slot = $('#coverSlot');
+  slot.addEventListener('click', e => {
+    if (e.target.id === 'coverClr') { e.stopPropagation(); S.cover = null; updateCover(); validateAll(); toast('已移除封面'); return; }
+    openCoverPicker();
+  });
+  slot.addEventListener('dragover', e => {
+    if (e.dataTransfer.types.includes('application/x-asset')) { e.preventDefault(); slot.classList.add('drop'); }
+  });
+  slot.addEventListener('dragleave', () => slot.classList.remove('drop'));
+  slot.addEventListener('drop', e => {
+    e.preventDefault(); slot.classList.remove('drop');
+    const id = e.dataTransfer.getData('application/x-asset');
+    if (id) { S.cover = id; updateCover(); validateAll(); }
+  });
+  // 导出设置
+  $('#expName').oninput = e => {
+    S.expName = e.target.value;
+    updateCover(); renderTree();
+  };
+  $('#modeSeg').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.mode = b.dataset.mode;
+    $$('#modeSeg button').forEach(x => x.classList.toggle('on', x === b));
+    renderTree(); renderCheck();
+  };
+  $('#btnPickDir').onclick = async () => {
+    if (!window.showDirectoryPicker) {
+      toast('当前浏览器不支持写文件夹，请用 Chrome / Edge，导出会进入默认下载目录', 'warn', 4200);
+      return;
+    }
+    try {
+      const h = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'downloads' });
+      S.dirHandle = h;
+      const t = $('#pathText');
+      t.textContent = h.name;
+      t.classList.remove('default');
+      $('#pathState').textContent = '已授权';
+      toast('导出位置：' + h.name, 'ok');
+    } catch (e) {
+      if (e.name !== 'AbortError') toast('无法选择文件夹：' + e.message, 'err');
+    }
+  };
+  $('#btnExport').onclick = doExport;
+  $('#btnSpec').onclick = () => openModal(`
+    <div class="modal-hd"><h3>使用说明 &amp; 平台规范</h3><button class="x" data-close>✕</button></div>
+    <div class="modal-bd"><div class="spec-list">
+      <h4>⓪ 三步走</h4>
+      <div><span class="k">1 导入</span>　把 GIF / PNG / ZIP 拖进左侧素材库（Ctrl+V 粘贴图片也行），原文件永不被改写</div>
+      <div><span class="k">2 摆放</span>　素材拖到格子里，或点空位从列表选；点「自动配对」可按关键词一键铺满，拖卡片上方的杠可调顺序</div>
+      <div><span class="k">3 导出</span>　命名、选位置、导出。放原始尺寸的素材也可以——导出时会自动规整到 300×300 并压进体积上限</div>
+      <h4>① 表情动画 GIF</h4>
+      <div>画布 <span class="k">300×300</span>，一套 <span class="k">16 个</span>，单文件 <span class="k">&lt; 300KB</span>，帧数不限（静态只做一帧）</div>
+      <div>必须加 <span class="k">3px 白色描边</span>（防边缘锯齿），全部为透明底</div>
+      <div>第一帧展示必须是最完整的一帧，不能空白/残缺</div>
+      <div>命名 <code>xxx_01.gif</code>、<code>xxx_02.gif</code>：关键词 ≤4 个汉字、每个表情都不同、支持中英文、不能有数字/标点/特殊符号；01、02 是位置顺序</div>
+      <h4>② 表情略缩图 PNG</h4>
+      <div>画布 <span class="k">300×300</span>，<span class="k">&lt; 200KB</span>，输出 GIF 最完整那一帧</div>
+      <div>白边可以不加；命名规则同 GIF，且与 GIF 一一对应</div>
+      <h4>③ 表情封面图</h4>
+      <div>画布 <span class="k">200×200</span>，PNG，<span class="k">&lt; 100KB</span>，除非必要不加文字</div>
+      <h4>④ 非等比素材怎么处理</h4>
+      <div>工具会在 300×300 画布上「完整显示 + 居中留白」，等比缩放不拉伸；也可切到「裁切填充」</div>
+    </div></div>
+    <div class="modal-ft"><span style="font-size:11px;color:var(--muted)">导出时自动校验尺寸与体积上限</span>
+      <span class="sp"></span><button class="btn primary" data-close>知道了</button></div>`);
+  // 全局拖拽 / 粘贴
+  let dragDepth = 0;
+  document.addEventListener('dragenter', e => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    dragDepth++;
+    $('#assetList').classList.add('dragover');
+  });
+  document.addEventListener('dragleave', e => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) $('#assetList').classList.remove('dragover');
+  });
+  document.addEventListener('dragover', e => {
+    if (e.dataTransfer.types.includes('Files')) e.preventDefault();
+  });
+  document.addEventListener('drop', e => {
+    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+      e.preventDefault();
+      dragDepth = 0;
+      $('#assetList').classList.remove('dragover');
+      importFiles(e.dataTransfer.files);
+    }
+  });
+  document.addEventListener('paste', e => {
+    const items = e.clipboardData && e.clipboardData.files;
+    if (items && items.length) { e.preventDefault(); importFiles(items); }
+  });
+}
+/* ---------- 分栏拖拽 ---------- */
+/* ---------- 表情板尺寸自适应 ---------- */
+function fitBoard() {
+  const board = $('#board'), grid = $('#grid'), cover = $('.cover-row');
+  const c0 = cardEls[0];
+  if (!board || !grid || !cover || !c0) return;
+  const gap = 10;
+  const cr = cover.getBoundingClientRect();
+  const cardR = c0.getBoundingClientRect();
+  const faceR = c0.querySelector('.flip').getBoundingClientRect();
+  if (!cardR.width || !faceR.width) return;
+  const inset = cardR.width - faceR.width;                    // 图片区左右边距 + 边框
+  const chrome = Math.max(0, cardR.height - faceR.height);    // 除图片区以外的高度
+  const availH = board.offsetHeight - 30 - cr.height - 14;     // 留给 4 行的总高
+  const maxFace = (availH - 3 * gap) / 4 - chrome;
+  const square = cardR.width - inset;
+  const faceH = Math.max(56, Math.round(Math.min(square, maxFace)));
+  if (grid.dataset.fh !== String(faceH)) {
+    grid.dataset.fh = String(faceH);
+    grid.style.setProperty('--face-h', faceH + 'px');
+  }
+  updateBoardScroll();
+}
+function updateBoardScroll() {
+  const b = $('#board'), sr = $('.stage-right');
+  if (!b || !sr) return;
+  const more = b.scrollHeight - b.clientHeight - b.scrollTop > 8;
+  sr.classList.toggle('more', more);
+}
+function initResizers() {
+  // 三列都按可用宽度的**比例**分配，窗口缩放时等比变化
+  const DEF = { assets: 0.126, stageLeft: 0.280, export: 0.210 };
+  const defs = {
+    assets: { sel: '.panel-assets', r: DEF.assets, minR: 0.09, maxR: 0.26, minPx: 168, maxPx: 470 },
+    stageLeft: { sel: '.stage-left', r: DEF.stageLeft, minR: 0.15, maxR: 0.42, minPx: 246, maxPx: 820 },
+    export: { sel: '.panel-export', r: DEF.export, minR: 0.13, maxR: 0.30, minPx: 226, maxPx: 620 },
+  };
+  const KEY = 'qes.layout.v3';
+  const main = $('.main');
+  const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } };
+  const write = () => {
+    try { localStorage.setItem(KEY, JSON.stringify({ assets: defs.assets.r, stageLeft: defs.stageLeft.r, export: defs.export.r })); } catch (e) { }
+  };
+  const hint = document.createElement('div');
+  hint.className = 'rs-hint';
+  document.body.appendChild(hint);
+  const avail = () => Math.max(360, main.clientWidth - 36);   // 去掉左右内边距 + 两条分栏缝
+  const pxOf = k => Math.round(clamp(avail() * defs[k].r, defs[k].minPx, defs[k].maxPx));
+  const paint = k => {
+    const el = $(defs[k].sel), w = pxOf(k);
+    el.style.flex = '0 0 ' + w + 'px';
+    el.style.width = w + 'px';
+    return w;
+  };
+  const paintAll = () => { for (const k in defs) paint(k); };
+  const saved = read();
+  for (const k in defs) if (typeof saved[k] === 'number' && saved[k] > 0.04) defs[k].r = saved[k];
+  paintAll();
+  window.addEventListener('resize', paintAll);
+  $$('.rs').forEach(rs => {
+    const k = rs.dataset.for, d = defs[k];
+    rs.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      const x0 = e.clientX, w0 = pxOf(k);
+      const sign = k === 'export' ? -1 : 1;
+      rs.classList.add('on');
+      document.body.classList.add('resizing');
+      hint.classList.add('on');
+      try { rs.setPointerCapture(e.pointerId); } catch (err) { }
+      const move = ev => {
+        const w = Math.round(clamp(w0 + (ev.clientX - x0) * sign, d.minPx, d.maxPx));
+        d.r = clamp(w / avail(), d.minR, d.maxR);
+        const el = $(d.sel);
+        el.style.flex = '0 0 ' + w + 'px';
+        el.style.width = w + 'px';
+        hint.textContent = w + ' px  ·  ' + Math.round(w / avail() * 100) + '%';
+        hint.style.left = Math.min(window.innerWidth - 90, ev.clientX + 14) + 'px';
+        hint.style.top = (ev.clientY + 16) + 'px';
+      };
+      const up = () => {
+        rs.classList.remove('on');
+        document.body.classList.remove('resizing');
+        hint.classList.remove('on');
+        rs.removeEventListener('pointermove', move);
+        rs.removeEventListener('pointerup', up);
+        rs.removeEventListener('pointercancel', up);
+        write();
+        fitBoard();
+      };
+      rs.addEventListener('pointermove', move);
+      rs.addEventListener('pointerup', up);
+      rs.addEventListener('pointercancel', up);
+    });
+    rs.addEventListener('dblclick', () => {
+      d.r = DEF[k];
+      paintAll();
+      write();
+      fitBoard();
+      toast('已复位分栏比例', '', 1400);
+    });
+  });
+}
+function openCoverPicker() {
+  const list = S.assets.slice().sort((a, b) => (a.kind === 'png' ? -1 : 1) - (b.kind === 'png' ? -1 : 1));
+  const html = `
+    <div class="modal-hd"><h3>选择封面图</h3>
+      <span style="font-size:11px;color:var(--muted)">导出时会自动规整为 200×200</span>
+      <button class="x" data-close>✕</button></div>
+    <div class="modal-bd">
+      ${list.length ? '<div class="pick-grid" id="pickGrid"></div>' : '<div style="text-align:center;padding:26px 0;color:var(--muted);font-size:12px">素材库是空的，先导入素材</div>'}
+    </div>
+    <div class="modal-ft"><span style="font-size:11px;color:var(--muted)">${list.length} 个素材</span><span class="sp"></span>
+      ${S.sel ? '<button class="btn" id="btnCoverGen">用当前素材生成 200×200</button>' : ''}
+      <button class="btn" data-close>取消</button></div>`;
+  openModal(html, (modal, close) => {
+    const g = modal.querySelector('#pickGrid');
+    if (!g) return;
+    for (const a of list) {
+      const d = document.createElement('div');
+      d.className = 'pick';
+      d.innerHTML = `<div class="im"><img src="${a.url}" draggable="false"></div><div class="nm">${escapeHTML(a.base)}</div><div class="dim">${a.w}×${a.h}</div>`;
+      d.title = `${a.name} · ${a.w}×${a.h}`;
+      d.onclick = () => { S.cover = a.id; updateCover(); validateAll(); close(); };
+      g.appendChild(d);
+    }
+    const gen = modal.querySelector('#btnCoverGen');
+    if (gen) gen.onclick = async () => {
+      gen.disabled = true; gen.textContent = '生成中…';
+      try {
+        const out = await genFromAsset(getAsset(S.sel), 'cover', true);
+        if (out) { renderAssets(); S.cover = out.id; updateCover(); validateAll(); close(); toast('封面已生成并放好', 'ok'); }
+      } finally { gen.disabled = false; }
+    };
+  });
+}
+function autoPair() {
+  const score = a => (isUsed(a.id) ? 0 : 100) + mateScore(a);
+  // 同一关键词只保留一个最优素材
+  const bestOf = kind => {
+    const m = new Map();
+    for (const a of S.assets) {
+      const k = a.kind === 'gif' ? 'gif' : 'png';
+      if (k !== kind) continue;
+      const key = ((a.base || '').toLowerCase()) || ('#' + a.id);
+      const cur = m.get(key);
+      if (!cur || score(a) > score(cur)) m.set(key, a);
+    }
+    return m;
+  };
+  const gifMap = bestOf('gif'), pngMap = bestOf('png');
+  let filled = 0;
+  // 1) 给已有的一半补另一半（同名）
+  S.cards.forEach(c => {
+    if (c.gif && !c.png) {
+      const g = getAsset(c.gif);
+      const m = g && pngMap.get((g.base || '').toLowerCase());
+      if (m && !isUsed(m.id)) { c.png = m.id; filled++; }
+    } else if (c.png && !c.gif) {
+      const p = getAsset(c.png);
+      const m = p && gifMap.get((p.base || '').toLowerCase());
+      if (m && !isUsed(m.id)) { c.gif = m.id; filled++; }
+    }
+  });
+  // 2) 补空位：一个关键词只用一次
+  const restG = Array.from(gifMap.values()).filter(a => !isUsed(a.id));
+  const restP = Array.from(pngMap.values()).filter(a => !isUsed(a.id));
+  S.cards.forEach(c => {
+    if (!c.gif && restG.length) {
+      const a = restG.shift();
+      c.gif = a.id; filled++;
+      if (!c.name) c.name = cleanKeyword(a.base);
+    }
+    if (!c.png) {
+      const g = c.gif ? getAsset(c.gif) : null;
+      let a = g ? pngMap.get((g.base || '').toLowerCase()) : null;
+      if (a && isUsed(a.id)) a = null;
+      if (!a) a = restP.find(x => !isUsed(x.id));
+      if (a) {
+        c.png = a.id; filled++;
+        const i = restP.indexOf(a); if (i >= 0) restP.splice(i, 1);
+        if (!c.name) c.name = cleanKeyword(a.base);
+      }
+    }
+  });
+  if (!S.cover) {
+    const p = S.assets.filter(a => a.kind !== 'gif' && !isUsed(a.id)).sort((a, b) => score(b) - score(a))[0];
+    if (p) S.cover = p.id;
+  }
+  renderBoard(); validateAll();
+  toast(filled ? `自动填入 ${filled} 个位置` : '没有可自动配对的新素材', filled ? 'ok' : 'warn');
+}
+/* ============================================================
+   15. 自检
+   ============================================================ */
+async function selfTest() {
+  const log = [];
+  const ok = (name, cond, extra) => log.push({ name, pass: !!cond, extra: extra === undefined ? '' : String(extra) });
+  try {
+    const W = 400, H = 300;
+    const mk = (col, dx) => {
+      const d = new Uint8ClampedArray(W * H * 4);
+      for (let y = 60; y < 240; y++) {
+        for (let x = 80 + dx; x < 320 + dx; x++) {
+          if (x < 0 || x >= W) continue;
+          const i = (y * W + x) * 4;
+          d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; d[i + 3] = 255;
+        }
+      }
+      return d;
+    };
+    const f1 = mk([220, 60, 80], 0), f2 = mk([60, 120, 220], 10);
+    const gifBytes = encodeGif([{ data: f1, delay: 10 }, { data: f2, delay: 10 }], W, H, { colors: 64 });
+    ok('GIF 编码输出', gifBytes.length > 100 && String.fromCharCode(gifBytes[0], gifBytes[1], gifBytes[2]) === 'GIF', gifBytes.length + 'B');
+    const bmp = await createImageBitmap(new Blob([gifBytes], { type: 'image/gif' }));
+    ok('浏览器能解码编码结果', bmp.width === W && bmp.height === H, bmp.width + '×' + bmp.height);
+    let n = 0, s1 = null, s2 = null, cornerA = null;
+    const info = walkGif(gifBytes, (rgba, w, h, delay, i) => {
+      n++;
+      if (i === 0) { const p = (150 * w + 200) * 4; s1 = [rgba[p], rgba[p + 1], rgba[p + 2], rgba[p + 3]]; }
+      if (i === 1) { const p = (150 * w + 200) * 4; s2 = [rgba[p], rgba[p + 1], rgba[p + 2], rgba[p + 3]]; }
+      const c = (5 * w + 5) * 4; cornerA = rgba[c + 3];
+    });
+    ok('GIF 自解码帧数', n === 2, n + ' 帧');
+    ok('GIF 首帧像素', s1 && s1[3] === 255 && Math.abs(s1[0] - 220) < 40, JSON.stringify(s1));
+    ok('GIF 第二帧像素', s2 && s2[3] === 255 && Math.abs(s2[2] - 220) < 40, JSON.stringify(s2));
+    ok('GIF 透明区域保持透明', cornerA === 0, 'alpha=' + cornerA);
+    ok('GIF 尺寸信息', info.width === W && info.height === H, info.width + '×' + info.height);
+
+    const z = makeZip([{ name: '测试.txt', data: new TextEncoder().encode('hello表情') }]);
+    const back = await unzip(await z.arrayBuffer());
+    ok('ZIP 写入/读取', back.length === 1 && back[0].name === '测试.txt' && new TextDecoder().decode(back[0].data) === 'hello表情', back.map(b => b.name).join(','));
+
+    const cv = document.createElement('canvas'); cv.width = 300; cv.height = 300;
+    const c2 = cv.getContext('2d'); c2.fillStyle = '#e33'; c2.fillRect(50, 50, 200, 200);
+    const pb = await encodePngIndexed(c2.getImageData(0, 0, 300, 300).data, 300, 300, 64);
+    const pbmp = await createImageBitmap(new Blob([pb], { type: 'image/png' }));
+    ok('PNG-8 可被浏览器解码', pbmp.width === 300 && pbmp.height === 300, pb.length + 'B');
+    const fit = await encodePngFit(cv, 200 * 1024);
+    ok('PNG 择优编码', fit.bytes.length > 100, fit.mode + ' ' + fit.bytes.length + 'B');
+
+    const fake = { id: 't', kind: 'gif', bytes: gifBytes, frames: 2, mime: 'image/gif', w: W, h: H, base: 't' };
+    const frames = await buildFrames(fake, { size: 300, fit: 'contain', stroke: 3 });
+    const fc = frames[0].canvas;
+    ok('输出画布尺寸', fc.width === 300 && fc.height === 300, fc.width + '×' + fc.height);
+    const fctx = fc.getContext('2d');
+    ok('留白处透明', fctx.getImageData(2, 2, 1, 1).data[3] === 0, '');
+    ok('主体不透明', fctx.getImageData(150, 150, 1, 1).data[3] > 200, '');
+    const colTop = cv2 => {
+      const d = cv2.getContext('2d').getImageData(150, 0, 1, cv2.height).data;
+      for (let y = 0; y < cv2.height; y++) if (d[y * 4 + 3] > 128) return y;
+      return -1;
+    };
+    const plain = await buildFrames(fake, { size: 300, fit: 'contain', stroke: 0 });
+    const t1 = colTop(fc), t0 = colTop(plain[0].canvas);
+    const spx = t1 >= 0 ? fc.getContext('2d').getImageData(150, t1, 1, 1).data : [0, 0, 0, 0];
+    ok('描边向外扩展且为白色', t1 >= 0 && t1 < t0 && spx[0] > 240 && spx[1] > 240 && spx[2] > 240,
+      `描边顶 ${t1} / 原图顶 ${t0} / rgba(${Array.from(spx).join(',')})`);
+
+    const a = addAssetSync({ name: '可爱_01.gif', bytes: gifBytes, mime: 'image/gif', kind: 'gif', w: W, h: H, frames: 2 });
+    ok('导入为素材对象', !!a && S.assets.length >= 1, a.name);
+    const out = await genFromAsset(a, 'gif', true);
+    ok('生成 GIF 实例', !!out && out.w === 300 && out.spec.kind === 'gif', out ? out.bytes.length + 'B' : 'null');
+    const outP = await genFromAsset(a, 'png', true);
+    ok('生成 PNG 实例', !!outP && outP.w === 300, outP ? outP.bytes.length + 'B' : 'null');
+    const coverOut = await genFromAsset(a, 'cover', true);
+    ok('生成封面', !!coverOut && coverOut.w === 200, coverOut ? coverOut.bytes.length + 'B' : 'null');
+    if (out) {
+      const rb = await createImageBitmap(new Blob([out.bytes], { type: 'image/gif' }));
+      ok('生成结果可解码', rb.width === 300, rb.width + '×' + rb.height);
+    }
+    if (coverOut) {
+      const cb = await createImageBitmap(new Blob([coverOut.bytes], { type: 'image/png' }));
+      ok('封面可解码', cb.width === 200 && cb.height === 200, cb.width + '×' + cb.height);
+    }
+    // 命名与编号
+    S.cards[0] = { gif: a.id, png: outP ? outP.id : null, name: '可爱', flip: false };
+    S.cards[1] = { gif: a.id, png: outP ? outP.id : null, name: '生气', flip: false };
+    const issues = collectIssues();
+    ok('校验：缺封面被识别', issues.errors.some(e => e.includes('封面')), issues.errors.length + ' 项');
+    ok('命名检查', checkName('可爱').ok && checkName('可爱1').ok === false && checkName('可爱_01').ok === false && checkName('超长名字啦').ok === false, '');
+    const kw = (S.cards[0].name) + '_' + pad2(1);
+    ok('文件编号格式', kw === '可爱_01', kw);
+  } catch (e) {
+    log.push({ name: '异常中断', pass: false, extra: e && e.message });
+    console.error(e);
+  }
+  const pass = log.filter(l => l.pass).length;
+  window.__selftest = log;
+  const box = document.createElement('div');
+  box.id = 'selftest-out';
+  box.style.cssText = 'position:fixed;right:12px;bottom:12px;width:420px;max-height:70vh;overflow:auto;background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px;font:12px/1.7 ui-monospace,Menlo,monospace;z-index:999;box-shadow:0 10px 40px rgba(0,0,0,.18)';
+  box.innerHTML = `<b>自检 ${pass}/${log.length}</b><br>` + log.map(l =>
+    `<span style="color:${l.pass ? '#0f9d57' : '#e0454b'}">${l.pass ? '✓' : '✗'} ${escapeHTML(l.name)}</span> <span style="color:#999">${escapeHTML(l.extra)}</span>`).join('<br>');
+  document.body.appendChild(box);
+  return { pass, total: log.length, log };
+}
+function init() {
+  window.__S = S;
+  buildGrid();
+  bindEvents();
+  initResizers();
+  $('#expName').value = S.expName;
+  renderAssets();
+  renderBoard();
+  validateAll();
+  updateStats();
+  updateNote();
+  syncSize(300);
+  requestAnimationFrame(() => {
+    fitBoard();
+    const b = $('#board');
+    if (window.ResizeObserver) new ResizeObserver(() => fitBoard()).observe(b);
+    b.addEventListener('scroll', updateBoardScroll, { passive: true });
+    window.addEventListener('resize', fitBoard);
+  });
+  if (location.search.indexOf('selftest') >= 0) setTimeout(selfTest, 300);
+}
+document.addEventListener('DOMContentLoaded', init);
+
+</script>
+</body>
+</html>
