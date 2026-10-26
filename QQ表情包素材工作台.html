@@ -354,7 +354,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:.35;height:18px}
   <header class="top">
     <div class="brand">
       <h1>表情包素材工作台</h1>
-      <span class="brand-sub">纯AI · 无人工 · 优质代码 · 赞美WorkBuddy每月免费积分</span>
+      <span class="brand-sub">规整 · 配对 · 编号导出</span>
     </div>
     <div class="top-actions">
       <span class="stat">素材 <b id="statCount">0</b></span>
@@ -921,6 +921,7 @@ function medianCut(entries, maxColors) {
     b.ents.sort((x, y) => x[ax] - y[ax]);
     let acc = 0, k = 0;
     for (; k < b.ents.length - 1; k++) { acc += b.ents[k].n; if (acc >= b.cnt / 2) break; }
+    if (k >= b.ents.length - 1) k = b.ents.length - 2;   // 保证右侧不为空
     const left = b.ents.slice(0, k + 1), right = b.ents.slice(k + 1);
     if (!left.length || !right.length) { b.score = -1; continue; }
     boxes.splice(bi, 1, makeBox(left), makeBox(right));
@@ -2665,6 +2666,18 @@ async function selfTest() {
     ok('PNG-8 可被浏览器解码', pbmp.width === 300 && pbmp.height === 300, pb.length + 'B');
     const fit = await encodePngFit(cv, 200 * 1024);
     ok('PNG 择优编码', fit.bytes.length > 100, fit.mode + ' ' + fit.bytes.length + 'B');
+
+    // 主色占比过半（如白底线稿）时，中位切分必须仍能切满调色板
+    const big = new Uint8ClampedArray(200 * 200 * 4);
+    for (let i = 0; i < big.length; i += 4) { big[i] = 245; big[i + 1] = 245; big[i + 2] = 240; big[i + 3] = 255; }
+    for (let y = 40; y < 130; y++) {
+      for (let x = 40; x < 130; x++) {
+        const i = (y * 200 + x) * 4;
+        big[i] = (x * 7 + y * 3) & 255; big[i + 1] = (x * 3 + y * 11) & 255; big[i + 2] = (x * 5 + y * 5) & 255;
+      }
+    }
+    const palBig = buildPalette([{ data: big }], 200, 200, 64);
+    ok('主色过半仍能切满调色板', palBig.length >= 48, 'pal=' + palBig.length);
 
     const fake = { id: 't', kind: 'gif', bytes: gifBytes, frames: 2, mime: 'image/gif', w: W, h: H, base: 't' };
     const frames = await buildFrames(fake, { size: 300, fit: 'contain', stroke: 3 });
